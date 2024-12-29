@@ -1,4 +1,5 @@
 import numpy as np
+from utils import force_symmetry
 
 
 def triangle_to_vector(
@@ -31,10 +32,10 @@ def vector_to_triangle(
     else:
         raise IndexError(f"array shape ({arr.shape[-1]}) does not fit size of triangular matrix")
 
-    out = np.empty(arr.shape[:-1] + (p, p), dtype=float)
+    out = np.zeros(arr.shape[:-1] + (p, p))
     row, col = np.tril_indices(p, 0 if diag else -1)
     out[..., row, col] = arr
-    out = out + out.T - np.diagonal(out, axis1=-2, axis2=-1) * np.eye(p)
+    out = force_symmetry(out)
 
     if not diag:
         row, col = np.diag_indices(p)

@@ -2,7 +2,7 @@ import ctypes
 import numpy as np
 
 
-clib = np.ctypeslib.load_library("corr_calc.so", "./")
+clib = np.ctypeslib.load_library("corr_calc.so", "../")
 matrix = np.eye(2, dtype=float)
 p = matrix.shape[0]
 

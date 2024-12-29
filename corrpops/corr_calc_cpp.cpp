@@ -1,5 +1,11 @@
 #include <vector>
 #include <cmath>
+#include <math.h>
+#include <stdio.h>
+
+#include <Python.h>
+#include "structmember.h"
+#include <numpy/arrayobject.h>
 
 
 using Matrix = std::vector< std::vector<double> >;

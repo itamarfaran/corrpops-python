@@ -1,15 +1,23 @@
 import numpy as np
+cimport numpy as cnp
 
 
+# Declare the function signature with type annotations
 def corr_calc(
-        m: np.ndarray,
-        n: int,
-        order_vector_i: np.ndarray,
-        order_vector_j: np.ndarray,
-) -> np.ndarray:
-    out = np.empty((n, n), float)
+        cnp.ndarray[cnp.float64_t] m,
+        int n,
+        cnp.ndarray[cnp.int32_t] order_vector_i,
+        cnp.ndarray[cnp.int32_t] order_vector_j
+) -> cnp.ndarray[cnp.float64_t]:
+    # Allocate the output array
+    cdef cnp.ndarray[cnp.float64_t, ndim=2] out = np.empty((n, n), dtype=np.float64)
 
-    for row in range(0, n):
+    # Declare variables used in the loop
+    cdef int row, col, i, j, k, l
+    cdef double m_ij, m_kl, m_ik, m_il, m_jk, m_jl
+
+    # Loop through the indices
+    for row in range(n):
         for col in range(row, n):
             i = order_vector_i[row]
             j = order_vector_j[row]
@@ -31,19 +39,3 @@ def corr_calc(
             )
 
     return out
-
-
-if __name__ == '__main__':
-    p = 4
-    matrix = np.full((p, p), 0.25) + 0.75 * np.eye(p, dtype=float)
-    m = int(0.5 * p * (p - 1))
-
-    # Generate order_vecti
-    order_vecti = np.concatenate([np.repeat(i, p - i - 1) for i in range(p)])
-
-    # Generate order_vectj
-    order_vectj = np.concatenate([np.arange(i + 1, p) for i in range(p)])
-
-    result = corr_calc(matrix, m, order_vecti, order_vectj)
-    result = result + result.T - np.diag(np.diag(result))
-    print(result)

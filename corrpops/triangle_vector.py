@@ -1,5 +1,5 @@
 import numpy as np
-from utils import force_symmetry
+from utils import fill_other_triangle
 
 
 def triangle_to_vector(
@@ -35,7 +35,7 @@ def vector_to_triangle(
     out = np.zeros(arr.shape[:-1] + (p, p))
     row, col = np.tril_indices(p, 0 if diag else -1)
     out[..., row, col] = arr
-    out = force_symmetry(out)
+    out = fill_other_triangle(out)
 
     if not diag:
         row, col = np.diag_indices(p)

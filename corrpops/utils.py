@@ -9,11 +9,18 @@ def matrix_power(arr: np.ndarray, power: float) -> np.ndarray:
     return v @ w @ v.T
 
 
-def force_symmetry(arr):
+def fill_other_triangle(arr):
     row, col = np.diag_indices(arr.shape[-1])
     diag = np.zeros_like(arr)
     diag[..., row, col] = arr[..., row, col]
     return arr + np.swapaxes(arr, -1, -2) - diag
+
+
+def force_symmetry(arr):
+    row, col = np.diag_indices(arr.shape[-1])
+    diag = np.zeros_like(arr)
+    diag[..., row, col] = arr[..., row, col]
+    return (arr + np.swapaxes(arr, -1, -2)) / 2
 
 
 def mahalanobis(

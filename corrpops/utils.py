@@ -1,3 +1,4 @@
+from typing import Literal
 import numpy as np
 from scipy import linalg
 
@@ -53,3 +54,32 @@ def is_positive_definite(arr):
     for index in np.ndindex(arr.shape[:-2]):
         out[index] = _check(arr[index])
     return out
+
+
+def regularize_matrix(
+        arr: np.ndarray,
+        const: float = 1.0,
+        method: Literal["constant", "avg_diag", "increase_diag"] = "constant",
+        only_if_singular: bool = True,
+) -> np.ndarray:
+    p = arr.shape[-1]
+    if arr.shape[-2] != p:
+        raise IndexError
+    if only_if_singular:
+        if linalg.matrix_rank(arr) == p:
+            return arr
+
+    if method == "constant":
+        if const < 0:
+            raise ValueError('in method \'constant\' const must be greater or equal to 0')
+        return arr + np.eye(p) * const
+    elif method == "avg_diag":
+        if not 0 <= const <= 1:
+            raise ValueError('in method \'avg_diag\' const must be between 0-1')
+        return (1 - const) * arr + const * np.eye(p) * np.diag(arr).mean()
+    elif method == "increase_diag":
+        if not 0 <= const <= 1:
+            raise ValueError('in method \'increase_diag\' const must be between 0-1')
+        return (1 - const) * arr + const * np.diag(np.diag(arr))
+    else:
+        raise ValueError

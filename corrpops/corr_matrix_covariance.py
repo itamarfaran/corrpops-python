@@ -78,6 +78,18 @@ def fisher_corr_matrix_covariance(
     return grad @ result @ grad
 
 
+def compute_estimated_n(est, theo, only_diag=False):
+    if only_diag:
+        row, col = np.diag_indices_from(theo)
+        x = theo[..., row, col].flatten()
+        y = est[..., row, col].flatten()
+    else:
+        x = triangle_to_vector(theo, True)
+        y = triangle_to_vector(est, True)
+
+    return np.linalg.lstsq(x[:, np.newaxis], y)[0]
+
+
 def average_covariance_matrix(
         arr,
         fisher: bool = False,
@@ -95,6 +107,8 @@ def average_covariance_matrix(
     if est_n:
         mat = triangle_to_vector(arr)
         est = np.swapaxes(mat, -1, -2) @ mat / np.prod(cov.shape[:-2])
-        estimated_n = 1  # compute_estimated_n_raw(est=est, theo=cov, only_diag=only_diag)
+        estimated_n = compute_estimated_n(est=est, theo=cov, only_diag=only_diag)
         cov = cov / estimated_n
-    return cov
+        return cov, estimated_n
+
+    return cov, None

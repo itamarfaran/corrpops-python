@@ -1,9 +1,10 @@
 import copy
 from typing import Optional, Union, Literal
-from corr_matrix_covariance import corr_matrix_covariance
+from corr_matrix_covariance import average_covariance_matrix
 from link_functions import MultiplicativeIdentity
 from estimation_utils import CorrPopsOptimizer
 from gee_covariance import GeeCovarianceEstimator
+from triangle_vector import triangle_to_vector
 
 
 class CorrPops:
@@ -30,6 +31,13 @@ class CorrPops:
         self.cov_ = None
 
     def fit(self, control_arr, diagnosed_arr):
+        weight_matrix, _ = average_covariance_matrix(
+            diagnosed_arr,
+            non_positive=self.non_positive,
+        )
+
+        control_arr = triangle_to_vector(control_arr)
+        diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
         if self.naive_optimizer is None:
             alpha_ = None
@@ -39,7 +47,6 @@ class CorrPops:
             alpha_ = self.naive_optimizer.alpha_
             theta_ = self.naive_optimizer.theta_
 
-        weight_matrix = corr_matrix_covariance(diagnosed_arr, self.non_positive)
         self.optimizer.optimize(
             control_arr,
             diagnosed_arr,

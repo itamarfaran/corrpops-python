@@ -48,9 +48,10 @@ class MultiplicativeIdentity(BaseLinkFunction):
 
     def reverse(self, data, a, d):
         a = self.transformer.transform(a)
-        a = np.outer(a, a)
+        a = a.reshape((int(a.size / d), d))
+        a = a @ a.T
         a = triangle_to_vector(a)
-        return data / np.outer(len(data), a)
+        return data / a
 
 
 class AdditiveQuotent(BaseLinkFunction):

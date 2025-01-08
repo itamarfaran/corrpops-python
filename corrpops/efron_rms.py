@@ -9,8 +9,10 @@ def efron_bias_correction(rms, p):
 
 
 def efron_rms_sample(arr, p=None):
-    arr = triangle_to_vector(arr)
-    rms_mean = np.mean(np.sqrt(np.mean(arr ** 2, arr.shape[:-1])))
+    rms_mean = np.mean(np.sqrt(np.mean(
+        arr ** 2,
+        axis=tuple(i for i in range(arr.ndim - 1)),
+    )))
 
     if p is not None:
         rms_mean = efron_bias_correction(rms_mean, p)

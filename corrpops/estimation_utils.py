@@ -40,9 +40,9 @@ def sum_of_squares(
     elif sigma is not None:
         raise ValueError
 
-    g11 = np.atleast_2d(triangle_to_vector(link_function.func(theta, alpha, dim_alpha)))
+    g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha)).reshape((theta.size, 1))
 
-    sse = diagnosed_arr.shape[0] * g11.T @ inv_sigma @ (0.5 * g11 - diagnosed_arr.mean(1))
+    sse = diagnosed_arr.shape[0] * g11.T @ inv_sigma @ (0.5 * g11 - diagnosed_arr.mean(0)[:, None])
     if reg_lambda > 0.0:
         sse += reg_lambda * norm_p(alpha, link_function.null_value, reg_p)
     return sse
@@ -133,7 +133,9 @@ class CorrPopsOptimizer:
             theta0=None,
             weights=None,
     ):
-        self.p_ = 0.5 * (1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1]))
+        self.p_ = int(
+            (1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1]) / 2)
+        )
 
         if alpha0 is None:
             alpha0 = np.full((self.p_, self.dim_alpha), self.link_function.null_value)
@@ -194,7 +196,7 @@ class CorrPopsOptimizer:
                     reg_lambda=self.reg_lambda,
                     reg_p=self.reg_p,
                 ),
-                alpha,
+                alpha.flatten(),
                 **self.minimize_kwargs,
             )
             alpha = optimize_results["x"]

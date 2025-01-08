@@ -13,7 +13,7 @@ def _corr_calc(
         order_vector_i: np.ndarray,
         order_vector_j: np.ndarray,
 ) -> np.ndarray:
-    out = np.empty((n, n), float)
+    out = np.empty(m.shape[:-2] + (n, n), float)
 
     for row in range(0, n):
         for col in range(row, n):
@@ -104,7 +104,7 @@ def average_covariance_matrix(
     else:
         cov = corr_matrix_covariance(arr, non_positive)
 
-    cov = cov.mean(cov.shape[:-2])
+    cov = cov.mean(tuple(i for i in range(cov.ndim - 2)))
 
     if est_n:
         mat = triangle_to_vector(arr)

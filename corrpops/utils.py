@@ -90,3 +90,10 @@ def regularize_matrix(
         return (1 - const) * arr + const * np.diag(np.diag(arr))
     else:
         raise ValueError
+
+
+def cov_to_corr(arr):
+    # todo: validate with statsmodels.cov2corr
+    row, col = np.diag_indices(arr.shape[-1])
+    diags = np.sqrt(arr[..., row, col])
+    return arr / (diags[..., None, :] * diags[..., :, None])

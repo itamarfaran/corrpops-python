@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional
 import numpy as np
 
 from corr_matrix_covariance import average_covariance_matrix
 from efron_rms import efron_effective_sample_size, efron_rms_sample
 from estimation_utils import CorrPopsOptimizer, theta_of_alpha
 from jacobian import simple_jacobian, richardson_jacobian
-from triangle_vector import triangle_to_vector
+from triangle_vector import triangle_to_vector, vector_to_triangle
 
 
 @dataclass
@@ -34,28 +34,28 @@ class GeeCovarianceEstimator:
             arr: np.ndarray,
             optimizer: CorrPopsOptimizer,
             jacobian_func: Callable[[np.ndarray], np.ndarray],
-            expected_value: np.ndarray | None,
+            expected_value: Optional[np.ndarray],
     ):
-        data = triangle_to_vector(arr)
-
         if self.jacobian_method == "simple":
             jacobian = simple_jacobian(jacobian_func, optimizer.alpha_)
         else:
             jacobian = richardson_jacobian(jacobian_func, optimizer.alpha_)
 
-        cov = average_covariance_matrix(arr, est_n=True)
+        cov, _ = average_covariance_matrix(
+            vector_to_triangle(arr, diag_value=1), est_n=True,
+        )
         inv_cov = np.linalg.inv(cov)
 
         if self.dof_method == "efron":
             dof = efron_effective_sample_size(
-                n=np.prod(data.shape[:-1]),
-                rms=efron_rms_sample(data),
+                n=np.prod(arr.shape[:-1]),
+                rms=efron_rms_sample(arr),
             )
         else:
-            dof = np.prod(data.shape[0])
+            dof = np.prod(arr.shape[0])
 
         return GeeProperties(
-            data,
+            arr,
             jacobian,
             expected_value,
             inv_cov,
@@ -67,6 +67,7 @@ class GeeCovarianceEstimator:
             control_arr,
             diagnosed_arr,
             optimizer,
+            d,
     ):
         def _inner(a):
             return theta_of_alpha(
@@ -74,7 +75,7 @@ class GeeCovarianceEstimator:
                 control_arr,
                 diagnosed_arr,
                 optimizer.link_function,
-                optimizer.alpha_.shape[-1],
+                d,
             )
 
         expected_value = (
@@ -95,6 +96,7 @@ class GeeCovarianceEstimator:
             control_arr,
             diagnosed_arr,
             optimizer,
+            d,
     ):
         def _inner(a):
             theta = theta_of_alpha(
@@ -102,14 +104,10 @@ class GeeCovarianceEstimator:
                 control_arr,
                 diagnosed_arr,
                 optimizer.link_function,
-                optimizer.alpha_.shape[-1],
+                d,
             )
             return triangle_to_vector(
-                optimizer.link_function.func(
-                    theta,
-                    a,
-                    optimizer.alpha_.shape[-1],
-                )
+                optimizer.link_function.func(theta, a, d)
             )
 
         expected_value = (
@@ -140,7 +138,7 @@ class GeeCovarianceEstimator:
 
     @staticmethod
     def calc_i1(properties: GeeProperties):
-        residuals = properties.data - properties.expected_value[:, None]
+        residuals = properties.data - properties.expected_value
         covariance = residuals.T @ residuals / properties.dof
         return properties.data.shape[0] * (
             properties.jacobian.T
@@ -156,8 +154,11 @@ class GeeCovarianceEstimator:
             diagnosed_arr,
             optimizer,
     ):
-        control_properties = self.create_control_properties(control_arr, diagnosed_arr, optimizer)
-        diagnosed_properties = self.create_control_properties(control_arr, diagnosed_arr, optimizer)
+        p = 0.5 + np.sqrt(1 + 8 * control_arr.shape[-1]) / 2
+        d = int(optimizer.alpha_.size / p)
+
+        control_properties = self.create_control_properties(control_arr, diagnosed_arr, optimizer, d)
+        diagnosed_properties = self.create_diagnosed_properties(control_arr, diagnosed_arr, optimizer, d)
         i0 = self.calc_i0(control_properties) + self.calc_i0(diagnosed_properties)
         i1 = self.calc_i1(control_properties) + self.calc_i1(diagnosed_properties)
         i1_inv = np.linalg.inv(i1)

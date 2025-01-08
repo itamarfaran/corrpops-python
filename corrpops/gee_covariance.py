@@ -22,7 +22,7 @@ class GeeCovarianceEstimator:
     def __init__(
             self,
             est_mu: bool = True,
-            jacobian_method: Literal["simple", "richardson"] = "simple",
+            jacobian_method: Literal["simple", "richardson"] = "richardson",
             dof_method: Literal["naive", "efron"] = "naive",
     ):
         self.est_mu = est_mu

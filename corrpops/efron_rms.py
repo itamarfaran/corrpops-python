@@ -17,7 +17,7 @@ def efron_rms_sample(arr, p=None):
     return rms_mean
 
 
-def efrons_rms(arr, p=None):
+def efron_rms(arr, p=None):
     if arr.shape[-2] != arr.shape[-1]:
         raise ValueError("m is not square")
 
@@ -32,5 +32,5 @@ def efrons_rms(arr, p=None):
     return rms
 
 
-def efrons_effective_sample_size(n, rms):
+def efron_effective_sample_size(n, rms):
     return n / (1 + (n - 1) * rms ** 2)

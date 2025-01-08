@@ -3,7 +3,7 @@ from typing import Callable, Literal
 import numpy as np
 
 from corr_matrix_covariance import average_covariance_matrix
-from efron_rms import efrons_effective_sample_size, efron_rms_sample
+from efron_rms import efron_effective_sample_size, efron_rms_sample
 from estimation_utils import CorrPopsOptimizer, theta_of_alpha
 from jacobian import simple_jacobian, richardson_jacobian
 from triangle_vector import triangle_to_vector
@@ -47,7 +47,7 @@ class GeeCovarianceEstimator:
         inv_cov = np.linalg.inv(cov)
 
         if self.dof_method == "efron":
-            dof = efrons_effective_sample_size(
+            dof = efron_effective_sample_size(
                 n=np.prod(data.shape[:-1]),
                 rms=efron_rms_sample(data),
             )

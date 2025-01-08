@@ -1,10 +1,12 @@
 from typing import Literal
 import warnings
 import numpy as np
+from numba import njit
 from triangle_vector import triangle_to_vector
 from utils import fill_other_triangle, is_positive_definite
 
 
+@njit
 def _corr_calc(
         m: np.ndarray,
         n: int,

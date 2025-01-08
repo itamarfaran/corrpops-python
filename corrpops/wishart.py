@@ -68,6 +68,9 @@ def arma_wishart_rvs(
 
     max_lag = len(ar)
 
+    if not max_lag:
+        return generalized_wishart_rvs(df, scale, size, random_state)
+
     eps = stats.multivariate_normal.rvs(None, scale, size + (df,), random_state)
     out = np.zeros(size + (df, scale.shape[-1]), float)
     for i in range(df):

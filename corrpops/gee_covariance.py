@@ -23,10 +23,12 @@ class GeeCovarianceEstimator:
             self,
             est_mu: bool = True,
             jacobian_method: Literal["simple", "richardson"] = "richardson",
+            sample_size: Literal["estimated", "naive"] = "estimated",
             dof_method: Literal["naive", "efron"] = "naive",
     ):
         self.est_mu = est_mu
         self.jacobian_method = jacobian_method
+        self.sample_size = sample_size
         self.dof_method = dof_method
 
     def create_properties(
@@ -42,7 +44,7 @@ class GeeCovarianceEstimator:
             jacobian = richardson_jacobian(jacobian_func, optimizer.alpha_)
 
         cov, _ = average_covariance_matrix(
-            vector_to_triangle(arr, diag_value=1), est_n=True,
+            vector_to_triangle(arr, diag_value=1),  # don't I need estimated n for something?
         )
         inv_cov = np.linalg.inv(cov)
 

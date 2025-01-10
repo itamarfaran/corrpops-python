@@ -42,7 +42,8 @@ class MultiplicativeIdentity(BaseLinkFunction):
 
     def func(self, t, a, d):
         a = self.transformer.transform(a)
-        a = np.outer(a, a)
+        a = a.reshape((int(a.size / d), d))
+        a = a @ a.T
         a[np.diag_indices_from(a)] = 1
         return vector_to_triangle(t, diag_value=1) * a
 

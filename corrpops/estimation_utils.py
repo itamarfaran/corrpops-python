@@ -57,7 +57,7 @@ class CorrPopsOptimizer:
             rel_tol: float = 1e-06,
             abs_tol: float = 0.0,
             abs_p: float = 2.0,
-            early_stop: bool = True,
+            early_stop: bool = False,
             min_iter: int = 3,
             max_iter: int = 50,
             reg_lambda: float = 0.0,
@@ -215,6 +215,7 @@ class CorrPopsOptimizer:
             else:
                 distance = np.abs(self.steps_[-2]["value"] - self.steps_[-1]["value"])
                 stop = distance < (self.rel_tol * (np.abs(self.steps_[-1]["value"]) + self.rel_tol))
+            stop = stop and i > self.min_iter
 
             if self.verbose:
                 print(
@@ -224,11 +225,9 @@ class CorrPopsOptimizer:
                     f"{np.round(distance, 5)})"
                 )
 
-            stop = stop and i > self.min_iter
-
             if stop:
                 for j in range(self.min_iter):
-                    if self.steps_[-j]["status"] != 0:
+                    if self.steps_[-(1 + j)]["status"] != 0:
                         stop = False
                         break
 

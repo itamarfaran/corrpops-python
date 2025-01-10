@@ -13,7 +13,7 @@ def _corr_calc(
         order_vector_i: np.ndarray,
         order_vector_j: np.ndarray,
 ) -> np.ndarray:
-    out = np.empty(m.shape[:-2] + (n, n), float)
+    out = np.zeros(m.shape[:-2] + (n, n), float)
 
     for row in range(0, n):
         for col in range(row, n):

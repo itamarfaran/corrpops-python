@@ -30,19 +30,19 @@ def sum_of_squares(
         diagnosed_arr,
         link_function,
         inv_sigma=None,
-        sigma=None,
         dim_alpha=1,
         reg_lambda=0.0,
         reg_p=2.0,
 ):
+    g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha))
+
     if inv_sigma is None:
-        inv_sigma = linalg.inv(sigma)
-    elif sigma is not None:
-        raise ValueError
+        sse = np.sum(g11.T * (0.5 * g11 - diagnosed_arr.mean(0)))
+    else:
+        g11 = g11.reshape((theta.size, 1))
+        sse = g11.T @ inv_sigma @ (0.5 * g11 - diagnosed_arr.mean(0)[:, None])
 
-    g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha)).reshape((theta.size, 1))
-
-    sse = diagnosed_arr.shape[0] * g11.T @ inv_sigma @ (0.5 * g11 - diagnosed_arr.mean(0)[:, None])
+    sse *= diagnosed_arr.shape[0]
     if reg_lambda > 0.0:
         sse += reg_lambda * norm_p(alpha, link_function.null_value, reg_p)
     return sse
@@ -150,9 +150,7 @@ class CorrPopsOptimizer:
 
         # todo: check if Initial parameters dont result with positive-definite matrices
 
-        if weights is None:
-            self.inv_cov_ = np.eye(int(self.p_ * (self.p_ - 1) / 2))
-        else:
+        if weights is not None:
             self.inv_cov_ = linalg.inv(weights)
 
         theta = theta0

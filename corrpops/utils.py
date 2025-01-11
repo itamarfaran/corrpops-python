@@ -57,7 +57,7 @@ def is_positive_definite(arr):
         else:
             return False
 
-    out = np.empty(arr.shape[:-2], dtype=bool)
+    out = np.full(arr.shape[:-2], False)
     for index in np.ndindex(arr.shape[:-2]):
         out[index] = _check(arr[index])
     return out

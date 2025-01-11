@@ -37,7 +37,7 @@ def sum_of_squares(
     g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha))
 
     if inv_sigma is None:
-        sse = np.sum(g11.T * (0.5 * g11 - diagnosed_arr.mean(0)))
+        sse = np.sum(g11 * (0.5 * g11 - diagnosed_arr.mean(0)))
     else:
         g11 = g11.reshape((theta.size, 1))
         sse = g11.T @ inv_sigma @ (0.5 * g11 - diagnosed_arr.mean(0)[:, None])

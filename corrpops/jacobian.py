@@ -8,7 +8,7 @@ def simple_jacobian(f, x0, h=1e-06, how="two_sided", *, args=()):
     xn = x.shape[0]
     fn = f(x0, *args).shape[0]
 
-    out = np.empty((xn, fn), dtype=float)
+    out = np.zeros((xn, fn), dtype=float)
     for i in range(xn):
         h_ = np.zeros_like(x0, dtype=float)
         h_[i] += h
@@ -100,7 +100,7 @@ def richardson_jacobian(f, x0, o=6, h1=0.5, v=2, *, args=()):
     xn = x.shape[0]
     fn = f(x0, *args).shape[0]
 
-    out = np.empty((xn, fn), dtype=float)
+    out = np.zeros((xn, fn), dtype=float)
     g = _richardson(f, x, o, h1, v, args)
     for i in range(xn):
         for j in range(fn):

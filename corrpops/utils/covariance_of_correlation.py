@@ -10,10 +10,10 @@ from utils.triangle_vector import triangle_to_vector
 
 @njit
 def _correlation_covariance(
-        m: np.ndarray,
-        n: int,
-        order_vector_i: np.ndarray,
-        order_vector_j: np.ndarray,
+    m: np.ndarray,
+    n: int,
+    order_vector_i: np.ndarray,
+    order_vector_j: np.ndarray,
 ) -> np.ndarray:
     out = np.zeros(m.shape[:-2] + (n, n), float)
 
@@ -32,7 +32,7 @@ def _correlation_covariance(
             m_jl = m[..., j, l]
 
             out[..., row, col] = (
-                (m_ij * m_kl / 2) * (m_ik ** 2 + m_il ** 2 + m_jk ** 2 + m_jl ** 2)
+                (m_ij * m_kl / 2) * (m_ik**2 + m_il**2 + m_jk**2 + m_jl**2)
                 - m_ij * (m_ik * m_il + m_jk * m_jl)
                 - m_kl * (m_ik * m_jk + m_il * m_jl)
                 + (m_ik * m_jl + m_il * m_jk)
@@ -41,8 +41,8 @@ def _correlation_covariance(
 
 
 def covariance_of_correlation(
-        arr: np.ndarray,
-        non_positive: Literal["raise", "warn", "ignore"] = "raise",
+    arr: np.ndarray,
+    non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
     if non_positive != "ignore":
         which_positive = is_positive_definite(arr)
@@ -53,7 +53,7 @@ def covariance_of_correlation(
                 warnings.warn("some matrices are not positive definite")
             else:
                 raise ValueError(
-                    f"non_positive should be one of \"raise\", \"warn\", \"ignore\", "
+                    f'non_positive should be one of "raise", "warn", "ignore", '
                     f"got {non_positive} instead",
                 )
 
@@ -69,8 +69,8 @@ def covariance_of_correlation(
 
 
 def covariance_of_fisher_correlation(
-        arr: np.ndarray,
-        non_positive: Literal["raise", "warn", "ignore"] = "raise",
+    arr: np.ndarray,
+    non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
     arr = np.tanh(arr)
     result = covariance_of_correlation(arr, non_positive)
@@ -95,11 +95,11 @@ def estimated_dof(est, theo, only_diag=False):
 
 
 def average_covariance_of_correlation(
-        arr,
-        fisher: bool = False,
-        est_n: bool = False,
-        only_diag: bool = True,
-        non_positive: Literal["raise", "warn", "ignore"] = "raise",
+    arr,
+    fisher: bool = False,
+    est_n: bool = False,
+    only_diag: bool = True,
+    non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ):
     if fisher:
         cov = covariance_of_fisher_correlation(arr, non_positive)

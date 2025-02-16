@@ -74,4 +74,3 @@ class AdditiveQuotient(BaseLinkFunction):
         a = a + a.T
         a = triangle_to_vector(a)
         return data * (1 + np.outer(len(data), a))
-

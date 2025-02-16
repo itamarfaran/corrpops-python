@@ -10,13 +10,13 @@ from .optimizer import CorrPopsOptimizer
 
 class CorrPopsEstimator:
     def __init__(
-            self,
-            link_function=MultiplicativeIdentity(),
-            *,
-            optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
-            gee_estimator: Optional[GeeCovarianceEstimator] = GeeCovarianceEstimator(),
-            naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
-            non_positive: Literal["raise", "warn", "ignore"] = "raise",
+        self,
+        link_function=MultiplicativeIdentity(),
+        *,
+        optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
+        gee_estimator: Optional[GeeCovarianceEstimator] = GeeCovarianceEstimator(),
+        naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
+        non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         self.optimizer = optimizer
         self.optimizer.link_function = link_function

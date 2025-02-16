@@ -15,21 +15,21 @@ from .link_functions import BaseLinkFunction
 
 class CorrPopsOptimizer:
     def __init__(
-            self,
-            *,
-            link_function: BaseLinkFunction = None,
-            dim_alpha: int = 1,
-            rel_tol: float = 1e-06,
-            abs_tol: float = 0.0,
-            abs_p: float = 2.0,
-            early_stop: bool = False,
-            min_iter: int = 3,
-            max_iter: int = 50,
-            reg_lambda: float = 0.0,
-            reg_p: float = 2.0,
-            minimize_kwargs: Optional[Dict[str, Any]] = None,
-            verbose: bool = True,
-            save_optimize_results: bool = False,
+        self,
+        *,
+        link_function: BaseLinkFunction = None,
+        dim_alpha: int = 1,
+        rel_tol: float = 1e-06,
+        abs_tol: float = 0.0,
+        abs_p: float = 2.0,
+        early_stop: bool = False,
+        min_iter: int = 3,
+        max_iter: int = 50,
+        reg_lambda: float = 0.0,
+        reg_p: float = 2.0,
+        minimize_kwargs: Optional[Dict[str, Any]] = None,
+        verbose: bool = True,
+        save_optimize_results: bool = False,
     ):
         self.link_function = link_function
         self.dim_alpha = dim_alpha
@@ -59,13 +59,13 @@ class CorrPopsOptimizer:
         self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
 
     def update_steps(
-            self,
-            theta,
-            alpha,
-            diagnosed_arr,
-            inv_cov,
-            status,
-            optimize_results=None,
+        self,
+        theta,
+        alpha,
+        diagnosed_arr,
+        inv_cov,
+        status,
+        optimize_results=None,
     ):
         if self.save_optimize_results:
             if optimize_results is None:
@@ -73,42 +73,44 @@ class CorrPopsOptimizer:
         else:
             optimize_results = {}
 
-        self.steps_.append({
-            "theta": theta,
-            "alpha": alpha,
-            "value": sum_of_squares(
-                theta=theta,
-                alpha=alpha,
-                diagnosed_arr=diagnosed_arr,
-                inv_sigma=inv_cov,
-                link_function=self.link_function,
-                dim_alpha=self.dim_alpha,
-                reg_lambda=self.reg_lambda,
-                reg_p=self.reg_p,
-            ),
-            "status": status,
-            "optimize_results": optimize_results,
-        })
+        self.steps_.append(
+            {
+                "theta": theta,
+                "alpha": alpha,
+                "value": sum_of_squares(
+                    theta=theta,
+                    alpha=alpha,
+                    diagnosed_arr=diagnosed_arr,
+                    inv_sigma=inv_cov,
+                    link_function=self.link_function,
+                    dim_alpha=self.dim_alpha,
+                    reg_lambda=self.reg_lambda,
+                    reg_p=self.reg_p,
+                ),
+                "status": status,
+                "optimize_results": optimize_results,
+            }
+        )
 
     def check_positive_definite(self, theta, alpha):
         # todo: handle false
 
         if not is_positive_definite(vector_to_triangle(theta, diag_value=1)):
             pass
-        if not is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)):
+        if not is_positive_definite(
+            self.link_function.func(theta, alpha, self.dim_alpha)
+        ):
             pass
 
     def optimize(
-            self,
-            control_arr,
-            diagnosed_arr,
-            alpha0=None,
-            theta0=None,
-            weights=None,
+        self,
+        control_arr,
+        diagnosed_arr,
+        alpha0=None,
+        theta0=None,
+        weights=None,
     ):
-        self.p_ = int(
-            (1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1]) / 2)
-        )
+        self.p_ = int((1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1]) / 2))
 
         if alpha0 is None:
             alpha0 = np.full((self.p_, self.dim_alpha), self.link_function.null_value)
@@ -142,11 +144,19 @@ class CorrPopsOptimizer:
         self.start_time_ = datetime.now()
 
         if self.verbose:
-            print(f"Time of initialization: {self.start_time_}; Progress: 'Loop, (Time, Status, Distance)'")
+            print(
+                f"Time of initialization: {self.start_time_}; "
+                f"Progress: 'Loop, (Time, Status, Distance)'"
+            )
 
         for i in range(self.max_iter):
-            if self.minimize_kwargs.get("method", "") != "TNC" and self.adaptive_maxiter:
-                self.minimize_kwargs["options"]["maxiter"] = np.clip(i * 100, 500, 2_000)
+            if (
+                self.minimize_kwargs.get("method", "") != "TNC"
+                and self.adaptive_maxiter
+            ):
+                self.minimize_kwargs["options"]["maxiter"] = np.clip(
+                    i * 100, 500, 2_000
+                )
 
             theta = theta_of_alpha(
                 alpha=alpha,
@@ -181,11 +191,15 @@ class CorrPopsOptimizer:
             )
 
             if self.stopping_rule == "abs_tol":
-                distance = norm_p(self.steps_[-2]["alpha"], self.steps_[-1]["alpha"], self.abs_p)
+                distance = norm_p(
+                    self.steps_[-2]["alpha"], self.steps_[-1]["alpha"], self.abs_p
+                )
                 stop = distance < self.abs_tol
             else:
                 distance = np.abs(self.steps_[-2]["value"] - self.steps_[-1]["value"])
-                stop = distance < (self.rel_tol * (np.abs(self.steps_[-1]["value"]) + self.rel_tol))
+                stop = distance < (
+                    self.rel_tol * (np.abs(self.steps_[-1]["value"]) + self.rel_tol)
+                )
             stop = stop and i > self.min_iter
 
             if self.verbose:
@@ -208,7 +222,9 @@ class CorrPopsOptimizer:
                     self.steps_.pop(-1)
                     theta = self.steps_[-1]["theta"]
                     alpha = self.steps_[-1]["alpha"]
-                    warnings.warn("early stopping used; last iteration didn't minimize target")
+                    warnings.warn(
+                        "early stopping used; last iteration didn't minimize target"
+                    )
                     stop = True
 
             if stop:
@@ -220,7 +236,9 @@ class CorrPopsOptimizer:
         self.end_time_ = datetime.now()
         if self.verbose:
             total_time = self.end_time_ - self.start_time_
-            print(f"total time: {total_time.seconds // 60} minutes and {total_time.seconds} seconds")
+            print(
+                f"total time: {total_time.seconds // 60} minutes and {total_time.seconds} seconds"
+            )
 
         self.theta_ = theta
         self.alpha_ = alpha

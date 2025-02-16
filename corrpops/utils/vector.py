@@ -3,18 +3,18 @@ from scipy import linalg
 
 
 def mahalanobis(
-        x,
-        y=None,
-        m=None,
-        solve=True,
-        sqrt=True,
+    x,
+    y=None,
+    m=None,
+    solve=True,
+    sqrt=True,
 ):
     if y is not None:
         x = x - y
     x = np.atleast_2d(x)
 
     if m is None:
-        out = np.sum(x ** 2)
+        out = np.sum(x**2)
     else:
         if solve:
             m = linalg.inv(m)

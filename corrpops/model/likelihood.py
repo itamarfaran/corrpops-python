@@ -5,11 +5,11 @@ from utils.vector import norm_p
 
 
 def theta_of_alpha(
-        alpha,
-        control_arr,
-        diagnosed_arr,
-        link_function,
-        d=1,
+    alpha,
+    control_arr,
+    diagnosed_arr,
+    link_function,
+    d=1,
 ):
     reversed_diagnosed_arr = link_function.reverse(diagnosed_arr, alpha, d)
     arr = np.concatenate((control_arr, reversed_diagnosed_arr))
@@ -17,14 +17,14 @@ def theta_of_alpha(
 
 
 def sum_of_squares(
-        alpha,
-        theta,
-        diagnosed_arr,
-        link_function,
-        inv_sigma=None,
-        dim_alpha=1,
-        reg_lambda=0.0,
-        reg_p=2.0,
+    alpha,
+    theta,
+    diagnosed_arr,
+    link_function,
+    inv_sigma=None,
+    dim_alpha=1,
+    reg_lambda=0.0,
+    reg_p=2.0,
 ):
     g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha))
 

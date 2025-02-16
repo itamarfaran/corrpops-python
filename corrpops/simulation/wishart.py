@@ -11,18 +11,15 @@ from utils.matrix import is_positive_definite
 
 
 def generalized_wishart_rvs(
-        df: int,
-        scale: np.ndarray,
-        size: Union[int, Tuple[int, ...]] = 1,
-        random_state: Any = None,
+    df: int,
+    scale: np.ndarray,
+    size: Union[int, Tuple[int, ...]] = 1,
+    random_state: Any = None,
 ) -> np.ndarray:
     if isinstance(size, int):
         size = (size,)
 
-    if (
-        df > scale.shape[-1]
-        and is_positive_definite(scale)
-    ):
+    if df > scale.shape[-1] and is_positive_definite(scale):
         return stats.wishart.rvs(df, scale, size, random_state)
 
     x = stats.multivariate_normal.rvs(None, scale, size + (df,), random_state)
@@ -31,17 +28,19 @@ def generalized_wishart_rvs(
 
 def is_invertible_arma(coefficients, tol=1e-03):
     x = np.linspace(-1, 1, int(2 / tol))[:, None]
-    results = 1 - np.sum(np.asarray(coefficients) * x ** (1 + np.arange(len(coefficients))), axis=1)
+    results = 1 - np.sum(
+        np.asarray(coefficients) * x ** (1 + np.arange(len(coefficients))), axis=1
+    )
     return (results > 0).all() or (results < 0).all()
 
 
 def arma_wishart_rvs(
-        df: int,
-        scale: np.ndarray,
-        ar: Union[float, Iterable[float]] = 0.0,
-        ma: Union[float, Iterable[float]] = 0.0,
-        size: Union[int, Tuple[int, ...]] = 1,
-        random_state: Any = None,
+    df: int,
+    scale: np.ndarray,
+    ar: Union[float, Iterable[float]] = 0.0,
+    ma: Union[float, Iterable[float]] = 0.0,
+    size: Union[int, Tuple[int, ...]] = 1,
+    random_state: Any = None,
 ):
     if not ar:
         ar_ = []

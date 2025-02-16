@@ -1,5 +1,6 @@
 import numpy as np
-from utils import fill_other_triangle
+
+from utils.matrix import fill_other_triangle
 
 
 def triangle_to_vector(

@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import Callable, Literal, Optional
+
 import numpy as np
 
-from corr_matrix_covariance import average_covariance_matrix
-from efron_rms import efron_effective_sample_size, efron_rms_sample
-from estimation_utils import CorrPopsOptimizer, theta_of_alpha
-from jacobian import simple_jacobian, richardson_jacobian
-from triangle_vector import triangle_to_vector, vector_to_triangle
+from utils.covariance_of_correlation import average_covariance_of_correlation
+from utils.efron_rms import efron_effective_sample_size, efron_rms_sample
+from utils.jacobian import simple_jacobian, richardson_jacobian
+from utils.triangle_vector import triangle_to_vector, vector_to_triangle
+from .likelihood import theta_of_alpha
+from .optimizer import CorrPopsOptimizer
 
 
 @dataclass
@@ -43,7 +45,7 @@ class GeeCovarianceEstimator:
         else:
             jacobian = richardson_jacobian(jacobian_func, optimizer.alpha_)
 
-        cov, _ = average_covariance_matrix(
+        cov, _ = average_covariance_of_correlation(
             vector_to_triangle(arr, diag_value=1),  # don't I need estimated n for something?
         )
         inv_cov = np.linalg.inv(cov)

@@ -1,7 +1,5 @@
 import numpy as np
-from triangle_vector import triangle_to_vector, vector_to_triangle
-import unittest
-import pytest
+from utils.triangle_vector import triangle_to_vector, vector_to_triangle
 
 
 def test_triangle_to_vector():

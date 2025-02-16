@@ -1,13 +1,15 @@
-from typing import Literal
 import warnings
+from typing import Literal
+
 import numpy as np
 from numba import njit
-from triangle_vector import triangle_to_vector
-from utils import fill_other_triangle, is_positive_definite
+
+from utils.matrix import fill_other_triangle, is_positive_definite
+from utils.triangle_vector import triangle_to_vector
 
 
 @njit
-def _corr_calc(
+def _correlation_covariance(
         m: np.ndarray,
         n: int,
         order_vector_i: np.ndarray,
@@ -38,7 +40,7 @@ def _corr_calc(
     return out
 
 
-def corr_matrix_covariance(
+def covariance_of_correlation(
         arr: np.ndarray,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
@@ -56,7 +58,7 @@ def corr_matrix_covariance(
                 )
 
     p = arr.shape[-1]
-    result = _corr_calc(
+    result = _correlation_covariance(
         arr,
         int(0.5 * p * (p - 1)),
         np.concatenate([np.repeat(i, p - i - 1) for i in range(p)]),
@@ -66,12 +68,12 @@ def corr_matrix_covariance(
     return result
 
 
-def fisher_corr_matrix_covariance(
+def covariance_of_fisher_correlation(
         arr: np.ndarray,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
     arr = np.tanh(arr)
-    result = corr_matrix_covariance(arr, non_positive)
+    result = covariance_of_correlation(arr, non_positive)
 
     grad = np.zeros_like(result)
     row, col = np.diag_indices(grad.shape[-1])
@@ -80,7 +82,7 @@ def fisher_corr_matrix_covariance(
     return grad @ result @ grad
 
 
-def compute_estimated_n(est, theo, only_diag=False):
+def estimated_dof(est, theo, only_diag=False):
     if only_diag:
         row, col = np.diag_indices_from(theo)
         x = theo[..., row, col].flatten()
@@ -92,7 +94,7 @@ def compute_estimated_n(est, theo, only_diag=False):
     return np.linalg.lstsq(x[:, np.newaxis], y)[0]
 
 
-def average_covariance_matrix(
+def average_covariance_of_correlation(
         arr,
         fisher: bool = False,
         est_n: bool = False,
@@ -100,17 +102,16 @@ def average_covariance_matrix(
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ):
     if fisher:
-        cov = fisher_corr_matrix_covariance(arr, non_positive)
+        cov = covariance_of_fisher_correlation(arr, non_positive)
     else:
-        cov = corr_matrix_covariance(arr, non_positive)
+        cov = covariance_of_correlation(arr, non_positive)
 
     cov = cov.mean(tuple(i for i in range(cov.ndim - 2)))
 
     if est_n:
         mat = triangle_to_vector(arr)
         est = np.swapaxes(mat, -1, -2) @ mat / np.prod(cov.shape[:-2])
-        estimated_n = compute_estimated_n(est=est, theo=cov, only_diag=only_diag)
+        estimated_n = estimated_dof(est=est, theo=cov, only_diag=only_diag)
         cov = cov / estimated_n
         return cov, estimated_n
-
     return cov, None

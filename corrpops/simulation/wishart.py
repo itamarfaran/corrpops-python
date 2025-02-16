@@ -1,8 +1,10 @@
 import copy
 from typing import Any, Union, Tuple, Iterable
+
 import numpy as np
 from scipy import stats
-from utils import is_positive_definite
+
+from utils.matrix import is_positive_definite
 
 
 # todo: generate_random_effect_sigma

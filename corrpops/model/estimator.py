@@ -1,10 +1,11 @@
 import copy
 from typing import Optional, Union, Literal
-from corr_matrix_covariance import average_covariance_matrix
-from link_functions import MultiplicativeIdentity
-from estimation_utils import CorrPopsOptimizer
-from gee_covariance import GeeCovarianceEstimator
-from triangle_vector import triangle_to_vector
+
+from utils.covariance_of_correlation import average_covariance_of_correlation
+from utils.triangle_vector import triangle_to_vector
+from .gee_covariance import GeeCovarianceEstimator
+from .link_functions import MultiplicativeIdentity
+from .optimizer import CorrPopsOptimizer
 
 
 class CorrPopsEstimator:
@@ -37,7 +38,7 @@ class CorrPopsEstimator:
         self.cov_ = None
 
     def fit(self, control_arr, diagnosed_arr):
-        weight_matrix, _ = average_covariance_matrix(
+        weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
         )

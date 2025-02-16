@@ -1,4 +1,5 @@
 from typing import Literal
+
 import numpy as np
 from scipy import linalg
 
@@ -21,29 +22,6 @@ def force_symmetry(arr):
     diag = np.zeros_like(arr)
     diag[..., row, col] = arr[..., row, col]
     return (arr + np.swapaxes(arr, -1, -2)) / 2
-
-
-def mahalanobis(
-        x,
-        y=None,
-        m=None,
-        solve=True,
-        sqrt=True,
-):
-    if y is not None:
-        x = x - y
-    x = np.atleast_2d(x)
-
-    if m is None:
-        out = np.sum(x ** 2)
-    else:
-        if solve:
-            m = linalg.inv(m)
-        out = x @ m @ np.swapaxes(x, -1, -2)
-
-    if sqrt:
-        out = np.sqrt(out)
-    return out
 
 
 def is_positive_definite(arr):
@@ -93,7 +71,6 @@ def regularize_matrix(
 
 
 def cov_to_corr(arr):
-    # todo: validate with statsmodels.cov2corr
     row, col = np.diag_indices(arr.shape[-1])
     diagonals = np.sqrt(arr[..., row, col])
     return arr / (diagonals[..., None, :] * diagonals[..., :, None])

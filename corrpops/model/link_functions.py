@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Callable
+
 import numpy as np
-from triangle_vector import vector_to_triangle, triangle_to_vector
+
+from utils.triangle_vector import vector_to_triangle, triangle_to_vector
 
 
 class Transformer:

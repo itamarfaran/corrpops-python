@@ -5,8 +5,8 @@ import numpy
 setup(
     include_dirs=[numpy.get_include()],
     install_requires=[
-        'numpy>=1.20.0',
-        'scipy>=1.6.0,',
-        'numba',
-    ]
+        "numpy>=1.20.0",
+        "scipy>=1.6.0,",
+        "numba",
+    ],
 )

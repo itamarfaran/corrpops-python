@@ -13,6 +13,3 @@ def test_triangle_to_vector():
 
     print(triangle_to_vector(arr, True))
     print(triangle_to_vector(arr, False))
-
-
-

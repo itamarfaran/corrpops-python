@@ -4,8 +4,8 @@ from utils.matrix import fill_other_triangle
 
 
 def triangle_to_vector(
-        arr: np.ndarray,
-        diag: bool = False,
+    arr: np.ndarray,
+    diag: bool = False,
 ) -> np.ndarray:
     if arr.shape[-2] != arr.shape[-1]:
         raise IndexError(f"array is not square ({arr.shape[-2]} != {arr.shape[-1]}")
@@ -15,23 +15,19 @@ def triangle_to_vector(
 
 
 def vector_to_triangle(
-        arr: np.ndarray,
-        diag: bool = False,
-        diag_value: float = np.nan,
+    arr: np.ndarray,
+    diag: bool = False,
+    diag_value: float = np.nan,
 ) -> np.ndarray:
-    p = 0.5 * (
-        (-1 if diag else 1)
-        + np.array((-1, 1))
-        * np.sqrt(1 + 8 * arr.shape[-1])
-    )
-    p = p[
-        (p == np.round(p))
-        & (p == np.abs(p))
-    ]
+    p = 0.5 * ((-1 if diag else 1) + np.array((-1, 1)) * np.sqrt(1 + 8 * arr.shape[-1]))
+    p = p[(p == np.round(p)) & (p == np.abs(p))]
     if len(p) == 1:
         p = int(p[0])
     else:
-        raise IndexError(f"array shape ({arr.shape[-1]}) does not fit size of triangular matrix")
+        raise IndexError(
+            f"array shape ({arr.shape[-1]}) does "
+            f"not fit size of triangular matrix"
+        )
 
     out = np.zeros(arr.shape[:-1] + (p, p))
     row, col = np.tril_indices(p, 0 if diag else -1)

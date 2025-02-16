@@ -7,7 +7,7 @@ from gee_covariance import GeeCovarianceEstimator
 from triangle_vector import triangle_to_vector
 
 
-class CorrPops:
+class CorrPopsEstimator:
     def __init__(
             self,
             link_function=MultiplicativeIdentity(),

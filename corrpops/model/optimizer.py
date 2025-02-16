@@ -5,7 +5,9 @@ from functools import partial
 import numpy as np
 from scipy import linalg, optimize
 
+from utils.matrix import is_positive_definite
 from utils.vector import norm_p
+from utils.triangle_vector import vector_to_triangle
 from .likelihood import theta_of_alpha, sum_of_squares
 from .link_functions import BaseLinkFunction
 
@@ -87,6 +89,14 @@ class CorrPopsOptimizer:
             "optimize_results": optimize_results,
         })
 
+    def check_positive_definite(self, theta, alpha):
+        # todo: handle false
+
+        if not is_positive_definite(vector_to_triangle(theta, diag_value=1)):
+            pass
+        if not is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)):
+            pass
+
     def optimize(
             self,
             control_arr,
@@ -110,7 +120,7 @@ class CorrPopsOptimizer:
                 d=self.dim_alpha,
             )
 
-        # todo: check if Initial parameters dont result with positive-definite matrices
+        self.check_positive_definite(theta0, alpha0)
 
         if weights is not None:
             self.inv_cov_ = linalg.inv(weights)

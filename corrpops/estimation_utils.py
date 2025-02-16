@@ -50,8 +50,8 @@ def sum_of_squares(
 class CorrPopsOptimizer:
     def __init__(
             self,
-            link_function: BaseLinkFunction,
             *,
+            link_function: BaseLinkFunction = None,
             dim_alpha: int = 1,
             rel_tol: float = 1e-06,
             abs_tol: float = 0.0,

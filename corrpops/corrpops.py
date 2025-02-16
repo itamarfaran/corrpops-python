@@ -10,20 +10,26 @@ from triangle_vector import triangle_to_vector
 class CorrPops:
     def __init__(
             self,
-            optimizer: CorrPopsOptimizer = CorrPopsOptimizer(MultiplicativeIdentity()),
+            link_function=MultiplicativeIdentity(),
+            *,
+            optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
             gee_estimator: Optional[GeeCovarianceEstimator] = GeeCovarianceEstimator(),
             naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
             non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         self.optimizer = optimizer
+        self.optimizer.link_function = link_function
+
         self.gee_estimator = gee_estimator
 
         if type(naive_optimizer) is bool:
-            self.naive_optimizer = copy.deepcopy(optimizer) if naive_optimizer else None
+            if naive_optimizer:
+                self.naive_optimizer = copy.deepcopy(self.optimizer)
+            else:
+                self.naive_optimizer = None
         else:
-            if naive_optimizer.link_function != optimizer.link_function:
-                raise ValueError
             self.naive_optimizer = naive_optimizer
+            self.naive_optimizer.link_function = link_function
 
         self.non_positive = non_positive
         self.alpha_ = None

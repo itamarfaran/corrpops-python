@@ -95,5 +95,5 @@ def regularize_matrix(
 def cov_to_corr(arr):
     # todo: validate with statsmodels.cov2corr
     row, col = np.diag_indices(arr.shape[-1])
-    diags = np.sqrt(arr[..., row, col])
-    return arr / (diags[..., None, :] * diags[..., :, None])
+    diagonals = np.sqrt(arr[..., row, col])
+    return arr / (diagonals[..., None, :] * diagonals[..., :, None])

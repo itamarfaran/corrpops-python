@@ -29,7 +29,7 @@ def efron_rms(arr, p=None):
     arr = triangle_to_vector(arr, False)
     rms = np.sqrt(np.mean(arr ** 2))
 
-    if p is not  None:
+    if p is not None:
         rms = efron_bias_correction(rms, p)
     return rms
 

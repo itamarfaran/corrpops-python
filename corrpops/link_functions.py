@@ -55,8 +55,8 @@ class MultiplicativeIdentity(BaseLinkFunction):
         return data / a
 
 
-class AdditiveQuotent(BaseLinkFunction):
-    name = "additive_quotent"
+class AdditiveQuotient(BaseLinkFunction):
+    name = "additive_quotient"
     null_value = 0.0
 
     def func(self, t, a, d):

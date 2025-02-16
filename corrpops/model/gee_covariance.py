@@ -38,7 +38,7 @@ class GeeCovarianceEstimator:
             arr: np.ndarray,
             optimizer: CorrPopsOptimizer,
             jacobian_func: Callable[[np.ndarray], np.ndarray],
-            expected_value: Optional[np.ndarray],
+            expected_value: np.ndarray,
     ):
         if self.jacobian_method == "simple":
             jacobian = simple_jacobian(jacobian_func, optimizer.alpha_)
@@ -59,11 +59,11 @@ class GeeCovarianceEstimator:
             dof = np.prod(arr.shape[0])
 
         return GeeProperties(
-            arr,
-            jacobian,
-            expected_value,
-            inv_cov,
-            dof,
+            data=arr,
+            jacobian=jacobian,
+            expected_value=expected_value,
+            inv_cov=inv_cov,
+            dof=dof,
         )
 
     def create_control_properties(

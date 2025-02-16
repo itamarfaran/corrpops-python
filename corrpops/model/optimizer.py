@@ -1,3 +1,4 @@
+from typing import Any, Dict, Optional
 import warnings
 from datetime import datetime
 from functools import partial
@@ -26,7 +27,7 @@ class CorrPopsOptimizer:
             max_iter: int = 50,
             reg_lambda: float = 0.0,
             reg_p: float = 2.0,
-            minimize_kwargs: dict = None,
+            minimize_kwargs: Optional[Dict[str, Any]] = None,
             verbose: bool = True,
             save_optimize_results: bool = False,
     ):

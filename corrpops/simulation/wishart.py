@@ -38,37 +38,37 @@ def is_invertible_arma(coefficients, tol=1e-03):
 def arma_wishart_rvs(
         df: int,
         scale: np.ndarray,
-        ar: Union[float, Iterable[float]] = None,
-        ma: Union[float, Iterable[float]] = None,
+        ar: Union[float, Iterable[float]] = 0.0,
+        ma: Union[float, Iterable[float]] = 0.0,
         size: Union[int, Tuple[int, ...]] = 1,
         random_state: Any = None,
 ):
-    if ar is None:
-        ar = []
+    if not ar:
+        ar_ = []
     elif not isinstance(ar, (tuple, list)):
-        ar = [ar]
+        ar_ = [ar]
     else:
-        ar = copy.copy(list(ar))
-    if ma is None:
-        ma = []
+        ar_ = copy.copy(list(ar))
+    if not ma:
+        ma_ = []
     elif not isinstance(ma, (tuple, list)):
-        ma = [ma]
+        ma_ = [ma]
     else:
-        ma = copy.copy(list(ma))
+        ma_ = copy.copy(list(ma))
 
-    if not is_invertible_arma(ar):
+    if not is_invertible_arma(ar_):
         raise ValueError
-    if not is_invertible_arma(ma):
+    if not is_invertible_arma(ma_):
         raise ValueError
     if isinstance(size, int):
         size = (size,)
 
-    while len(ma) < len(ar):
-        ma.append(0)
-    while len(ar) < len(ma):
-        ar.append(0)
+    while len(ma_) < len(ar_):
+        ma_.append(0)
+    while len(ar_) < len(ma_):
+        ar_.append(0)
 
-    max_lag = len(ar)
+    max_lag = len(ar_)
 
     if not max_lag:
         return generalized_wishart_rvs(df, scale, size, random_state)
@@ -80,7 +80,7 @@ def arma_wishart_rvs(
 
         for lag in range(max_lag):
             if lag < i:
-                out[..., i, :] += ma[lag] * eps[..., i - lag - 1, :]
-                out[..., i, :] += ar[lag] * out[..., i - lag - 1, :]
+                out[..., i, :] += ma_[lag] * eps[..., i - lag - 1, :]
+                out[..., i, :] += ar_[lag] * out[..., i - lag - 1, :]
 
     return np.swapaxes(out, -1, -2) @ out

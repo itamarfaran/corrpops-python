@@ -42,3 +42,4 @@ print(
         )
     )
 )
+print(model.score(control[0], diagnosed[0]))

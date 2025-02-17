@@ -1,15 +1,22 @@
 import copy
+from collections import namedtuple
 from typing import Optional, Union, Literal
+
 
 import numpy as np
 from scipy import stats
 
-from utils.covariance_of_correlation import average_covariance_of_correlation
-from utils.matrix import cov_to_corr
-from utils.triangle_vector import triangle_to_vector
+from utils.covariance_of_correlation import (
+    average_covariance_of_correlation,
+    covariance_of_correlation,
+)
+from utils.triangle_vector import triangle_to_vector, vector_to_triangle
 from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
 from .optimizer import CorrPopsOptimizer
+
+
+WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "dof", "p_val"])
 
 
 class CorrPopsEstimator:
@@ -131,3 +138,48 @@ class CorrPopsEstimator:
             )
 
         return result
+
+    def score(self, control_arr, diagnosed_arr):
+        null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
+        null_cov = covariance_of_correlation(null_mean)
+
+        g11 = self.optimizer.link_function.func(
+            t=self.theta_,
+            a=self.alpha_,
+            d=self.optimizer.dim_alpha,
+        )
+
+        control_arr = triangle_to_vector(control_arr)
+        diagnosed_arr = triangle_to_vector(diagnosed_arr)
+
+        full_log_likelihood = (
+            stats.multivariate_normal.logpdf(
+                x=control_arr,
+                mean=self.theta_,
+                cov=covariance_of_correlation(
+                    vector_to_triangle(self.theta_, diag_value=1)
+                ),
+            ).sum()
+            + stats.multivariate_normal.logpdf(
+                x=diagnosed_arr,
+                mean=triangle_to_vector(g11),
+                cov=covariance_of_correlation(g11),
+            ).sum()
+        )
+        null_log_likelihood = (
+            stats.multivariate_normal.logpdf(
+                x=control_arr,
+                mean=triangle_to_vector(null_mean),
+                cov=null_cov,
+            ).sum()
+            + stats.multivariate_normal.logpdf(
+                x=diagnosed_arr,
+                mean=triangle_to_vector(null_mean),
+                cov=null_cov,
+            ).sum()
+        )
+
+        chi2_val = 2 * (full_log_likelihood - null_log_likelihood)
+        dof = np.size(self.alpha_)
+        p_val = stats.chi2.sf(chi2_val, dof)
+        return WilksTestResult(chi2_val, dof, p_val)

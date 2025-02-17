@@ -95,7 +95,9 @@ class CorrPopsOptimizer:
     def check_positive_definite(self, theta, alpha):
         # todo: handle false
 
-        if not is_positive_definite(vector_to_triangle(theta, diag_value=1)):
+        if not is_positive_definite(
+            vector_to_triangle(theta, diag_value=1)
+        ):
             pass
         if not is_positive_definite(
             self.link_function.func(theta, alpha, self.dim_alpha)

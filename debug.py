@@ -1,3 +1,5 @@
+import pandas as pd
+
 from model.estimator import CorrPopsEstimator
 from model.optimizer import CorrPopsOptimizer
 from model.link_functions import MultiplicativeIdentity
@@ -33,8 +35,10 @@ model = CorrPopsEstimator(
 )
 model.fit(control[0], diagnosed[0])
 print(
-    alpha.flatten().round(2), "\n",
-    model.naive_optimizer.alpha_.round(2), "\n",
-    model.alpha_.round(2), "\n",
+    pd.DataFrame(
+        model.inference(
+            p_adjust_method="fdr_bh",
+            known_alpha=alpha,
+        )
+    )
 )
-

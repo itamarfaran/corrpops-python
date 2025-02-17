@@ -58,7 +58,7 @@ def preprocess(
     control: np.ndarray,
     diagnosed: np.ndarray,
     threshold: Optional[float] = None,
-    subset: Collection[int] = None,
+    subset: Optional[Collection[int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     arr = np.concatenate((control, diagnosed))
 

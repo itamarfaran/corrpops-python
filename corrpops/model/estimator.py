@@ -2,7 +2,6 @@ import copy
 from collections import namedtuple
 from typing import Optional, Union, Literal
 
-
 import numpy as np
 from scipy import stats
 
@@ -14,7 +13,6 @@ from .covariance_of_correlation import (
 from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
 from .optimizer import CorrPopsOptimizer
-
 
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "dof", "p_val"])
 

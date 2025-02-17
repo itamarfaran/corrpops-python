@@ -1,14 +1,14 @@
-from typing import Any, Dict, Optional
 import warnings
 from datetime import datetime
 from functools import partial
+from typing import Any, Dict, Optional
 
 import numpy as np
 from scipy import linalg, optimize
 
 from linalg.matrix import is_positive_definite
-from linalg.vector import norm_p
 from linalg.triangle_vector import vector_to_triangle
+from linalg.vector import norm_p
 from .likelihood import theta_of_alpha, sum_of_squares
 from .link_functions import BaseLinkFunction
 
@@ -95,9 +95,7 @@ class CorrPopsOptimizer:
     def check_positive_definite(self, theta, alpha):
         # todo: handle false
 
-        if not is_positive_definite(
-            vector_to_triangle(theta, diag_value=1)
-        ):
+        if not is_positive_definite(vector_to_triangle(theta, diag_value=1)):
             pass
         if not is_positive_definite(
             self.link_function.func(theta, alpha, self.dim_alpha)

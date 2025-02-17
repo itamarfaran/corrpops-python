@@ -1,6 +1,6 @@
-from pathlib import Path
-from typing import Collection, Dict, List, Optional, Tuple, Union
 import warnings
+from pathlib import Path
+from typing import Collection, Dict, Optional, Tuple, Union
 
 import numpy as np
 from scipy.io import loadmat

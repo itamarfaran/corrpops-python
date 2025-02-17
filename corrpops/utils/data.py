@@ -1,14 +1,18 @@
+import warnings
 from pathlib import Path
 import numpy as np
 from utils.triangle_vector import vector_to_triangle
 
 
 def download_data(dst):
-    src = "https://github.com/itamarfaran/corrpops-python/data/" + dst.name
+    import urllib.request
+    src = "https://github.com/itamarfaran/corrpops-python/raw/refs/heads/main/data/" + dst.name
+    warnings.warn(f"downloading {dst.name} from corrpops-python github repo")
+    urllib.request.urlretrieve(src, dst)
 
 
 def load_data(data_name):
-    path = Path(__file__).with_name(data_name).with_suffix(".npz")
+    path = Path(__file__).parent.with_name(data_name).with_suffix(".npz")
     if not path.exists():
         download_data(path)
     data = np.load(path)

@@ -1,7 +1,7 @@
 import warnings
 from pathlib import Path
 import numpy as np
-from utils.triangle_vector import vector_to_triangle
+from linalg.triangle_vector import vector_to_triangle
 
 
 def download_data(dst):

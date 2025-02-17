@@ -2,9 +2,9 @@ from typing import Tuple
 from model.link_functions import MultiplicativeIdentity
 import numpy as np
 from scipy import stats
-from utils.matrix import force_symmetry, cov_to_corr
+from linalg.matrix import force_symmetry, cov_to_corr
 from simulation.wishart import arma_wishart_rvs
-from utils.triangle_vector import triangle_to_vector
+from linalg.triangle_vector import triangle_to_vector
 
 
 def build_parameters(

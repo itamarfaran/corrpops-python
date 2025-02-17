@@ -6,11 +6,11 @@ from typing import Optional, Union, Literal
 import numpy as np
 from scipy import stats
 
-from utils.covariance_of_correlation import (
+from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from .covariance_of_correlation import (
     average_covariance_of_correlation,
     covariance_of_correlation,
 )
-from utils.triangle_vector import triangle_to_vector, vector_to_triangle
 from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
 from .optimizer import CorrPopsOptimizer

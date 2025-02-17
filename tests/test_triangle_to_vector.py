@@ -1,5 +1,5 @@
 import numpy as np
-from utils.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 
 
 def test_triangle_to_vector():

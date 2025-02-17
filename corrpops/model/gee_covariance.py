@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Callable, Literal, Optional
+from typing import Callable, Literal
 
 import numpy as np
 
-from utils.covariance_of_correlation import average_covariance_of_correlation
-from utils.efron_rms import efron_effective_sample_size, efron_rms_sample
-from utils.jacobian import simple_jacobian, richardson_jacobian
-from utils.triangle_vector import triangle_to_vector, vector_to_triangle
+from statistics.efron_rms import efron_effective_sample_size, efron_rms_sample
+from linalg.jacobian import simple_jacobian, richardson_jacobian
+from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from .covariance_of_correlation import average_covariance_of_correlation
 from .likelihood import theta_of_alpha
 from .optimizer import CorrPopsOptimizer
 

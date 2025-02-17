@@ -1,7 +1,7 @@
 import numpy as np
-from utils.covariance_of_correlation import covariance_of_correlation
+from model.covariance_of_correlation import covariance_of_correlation
 from scipy import stats
-from utils import cov_to_corr
+from linalg import cov_to_corr
 from statsmodels.stats.moment_helpers import cov2corr
 
 

@@ -6,9 +6,9 @@ from functools import partial
 import numpy as np
 from scipy import linalg, optimize
 
-from utils.matrix import is_positive_definite
-from utils.vector import norm_p
-from utils.triangle_vector import vector_to_triangle
+from linalg.matrix import is_positive_definite
+from linalg.vector import norm_p
+from linalg.triangle_vector import vector_to_triangle
 from .likelihood import theta_of_alpha, sum_of_squares
 from .link_functions import BaseLinkFunction
 

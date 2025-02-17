@@ -4,8 +4,8 @@ from typing import Literal
 import numpy as np
 from numba import njit
 
-from utils.matrix import fill_other_triangle, is_positive_definite
-from utils.triangle_vector import triangle_to_vector
+from linalg.matrix import fill_other_triangle, is_positive_definite
+from linalg.triangle_vector import triangle_to_vector
 
 
 @njit

@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils.matrix import fill_other_triangle
+from linalg.matrix import fill_other_triangle
 
 
 def triangle_to_vector(

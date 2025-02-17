@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils.triangle_vector import triangle_to_vector
+from linalg.triangle_vector import triangle_to_vector
 
 
 def efron_bias_correction(rms, p):

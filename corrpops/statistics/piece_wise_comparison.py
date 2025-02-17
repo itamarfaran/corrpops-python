@@ -3,7 +3,10 @@ from typing import Dict, Literal
 import numpy as np
 from scipy import stats
 
-from utils.triangle_vector import triangle_to_vector
+from linalg.triangle_vector import triangle_to_vector
+
+
+# todo: should be part of package?
 
 
 def piece_wise_comparison(

@@ -1,7 +1,7 @@
 import numpy as np
 
-from utils.triangle_vector import triangle_to_vector
-from utils.vector import norm_p
+from linalg.triangle_vector import triangle_to_vector
+from linalg.vector import norm_p
 
 
 def theta_of_alpha(

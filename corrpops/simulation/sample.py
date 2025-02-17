@@ -17,9 +17,9 @@ def build_parameters(
     theta_loc: float = 0.0,
     theta_scale: float = 1.0,
     enforce_min_alpha: bool = False,
-    seed=None,
+    random_state=None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(random_state)
 
     theta = stats.norm.rvs(
         loc=theta_loc,
@@ -62,9 +62,9 @@ def create_samples(
     diagnosed_ma=None,
     size=1,
     random_effect=0.0,
-    seed=None,
+    random_state=None,
 ):
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(random_state)
     p = control_correlation.shape[-1]
 
     control = arma_wishart_rvs(
@@ -106,7 +106,7 @@ def create_samples_from_parameters(
     diagnosed_ma=None,
     size=1,
     random_effect=0.0,
-    seed=None,
+    random_state=None,
 ):
     g11 = link_function.func(
         t=triangle_to_vector(theta),
@@ -125,5 +125,5 @@ def create_samples_from_parameters(
         diagnosed_ma=diagnosed_ma,
         size=size,
         random_effect=random_effect,
-        seed=seed,
+        random_state=random_state,
     )

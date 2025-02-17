@@ -25,7 +25,7 @@ control, diagnosed = create_samples_from_parameters(
     diagnosed_ma=0.0,
     random_effect=0.05,
     size=1,
-    seed=12,
+    random_state=12,
 )
 
 

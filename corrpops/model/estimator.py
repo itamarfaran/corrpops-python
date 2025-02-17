@@ -14,7 +14,7 @@ from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
 from .optimizer import CorrPopsOptimizer
 
-WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "dof", "p_val"])
+WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
 
 class CorrPopsEstimator:
@@ -178,6 +178,6 @@ class CorrPopsEstimator:
         )
 
         chi2_val = 2 * (full_log_likelihood - null_log_likelihood)
-        dof = np.size(self.alpha_)
-        p_val = stats.chi2.sf(chi2_val, dof)
-        return WilksTestResult(chi2_val, dof, p_val)
+        df = np.size(self.alpha_)
+        p_val = stats.chi2.sf(chi2_val, df)
+        return WilksTestResult(chi2_val, df, p_val)

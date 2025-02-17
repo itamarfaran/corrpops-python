@@ -28,7 +28,7 @@ def piece_wise_comparison(
     diagnosed_vars = diagnosed.var(axis=0, where=~np.isnan(diagnosed))
     diagnosed_lens = (~np.isnan(diagnosed)).sum(0)
 
-    dof = (control_vars / control_lens + diagnosed_vars / diagnosed_lens) ** 2 / (
+    df = (control_vars / control_lens + diagnosed_vars / diagnosed_lens) ** 2 / (
         (control_vars / control_lens) ** 2 / (control_lens - 1)
         + (diagnosed_vars / diagnosed_lens) ** 2 / (diagnosed_lens - 1)
     )
@@ -37,11 +37,11 @@ def piece_wise_comparison(
     )
 
     if alternative == "smaller":
-        p_vals = stats.t.cdf(t_vals, df=dof)
+        p_vals = stats.t.cdf(t_vals, df=df)
     elif alternative == "larger":
-        p_vals = stats.t.sf(t_vals, df=dof)
+        p_vals = stats.t.sf(t_vals, df=df)
     elif alternative == "two-sided":
-        p_vals = 2 * stats.t.sf(np.abs(t_vals), df=dof)
+        p_vals = 2 * stats.t.sf(np.abs(t_vals), df=df)
     else:
         raise ValueError(
             f"alternative should be one of ['two-sided', 'smaller', 'larger'], "
@@ -63,7 +63,7 @@ def piece_wise_comparison(
         "diagnosed_vars": diagnosed_vars,
         "diagnosed_lens": diagnosed_lens,
         "t_vals": t_vals,
-        "dof": dof,
+        "df": df,
         "p_vals": p_vals,
         "p_vals_adjusted": p_vals_adjusted,
     }

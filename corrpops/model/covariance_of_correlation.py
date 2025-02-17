@@ -82,7 +82,7 @@ def covariance_of_fisher_correlation(
     return grad @ result @ grad
 
 
-def estimated_dof(est, theo, only_diag=False):
+def estimated_df(est, theo, only_diag=False):
     if only_diag:
         row, col = np.diag_indices_from(theo)
         x = theo[..., row, col].flatten()
@@ -111,7 +111,7 @@ def average_covariance_of_correlation(
     if est_n:
         mat = triangle_to_vector(arr)
         est = np.swapaxes(mat, -1, -2) @ mat / np.prod(cov.shape[:-2])
-        estimated_n = estimated_dof(est=est, theo=cov, only_diag=only_diag)
+        estimated_n = estimated_df(est=est, theo=cov, only_diag=only_diag)
         cov = cov / estimated_n
         return cov, estimated_n
     return cov, None

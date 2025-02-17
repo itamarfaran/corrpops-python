@@ -17,7 +17,7 @@ class GeeProperties:
     jacobian: np.ndarray
     expected_value: np.ndarray
     inv_cov: np.ndarray
-    dof: float
+    df: float
 
 
 class GeeCovarianceEstimator:
@@ -26,12 +26,12 @@ class GeeCovarianceEstimator:
         est_mu: bool = True,
         jacobian_method: Literal["simple", "richardson"] = "richardson",
         sample_size: Literal["estimated", "naive"] = "estimated",
-        dof_method: Literal["naive", "efron"] = "naive",
+        df_method: Literal["naive", "efron"] = "naive",
     ):
         self.est_mu = est_mu
         self.jacobian_method = jacobian_method
         self.sample_size = sample_size
-        self.dof_method = dof_method
+        self.df_method = df_method
 
     def create_properties(
         self,
@@ -51,20 +51,20 @@ class GeeCovarianceEstimator:
         )
         inv_cov = np.linalg.inv(cov)
 
-        if self.dof_method == "efron":
-            dof = efron_effective_sample_size(
+        if self.df_method == "efron":
+            df = efron_effective_sample_size(
                 n=np.prod(arr.shape[:-1]),
                 rms=efron_rms_sample(arr),
             )
         else:
-            dof = np.prod(arr.shape[0])
+            df = np.prod(arr.shape[0])
 
         return GeeProperties(
             data=arr,
             jacobian=jacobian,
             expected_value=expected_value,
             inv_cov=inv_cov,
-            dof=dof,
+            df=df,
         )
 
     def create_control_properties(
@@ -139,7 +139,7 @@ class GeeCovarianceEstimator:
     @staticmethod
     def calc_i1(properties: GeeProperties):
         residuals = properties.data - properties.expected_value
-        covariance = residuals.T @ residuals / properties.dof
+        covariance = residuals.T @ residuals / properties.df
         return properties.data.shape[0] * (
             properties.jacobian.T
             @ properties.inv_cov

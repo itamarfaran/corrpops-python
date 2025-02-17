@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 setup(
@@ -8,10 +8,10 @@ setup(
     author="Itamar Faran",
     author_email="itamar.faran@gmail.com",
     url="https://github.com/itamarfaran/corrpops-python",
-    packages=find_packages(include=["corrpops", "corrpops.*"]),
+    packages=["corrpops"],
     install_requires=[
-        "numpy>=1.20.0",
-        "scipy>=1.6.0,",
+        "numpy >= 1.20.0",
+        "scipy >= 1.6.0,",
         "numba",
     ],
     tests_require=["pytest"],

@@ -33,12 +33,12 @@ def drop_columns_by_na_threshold(
     return arr, idx_drop
 
 
-def matlab_to_json(
+def matlab_to_dict(
     path: Union[Path, str],
     array_key: str,
     control_indices_key: str,
     diagnosed_indices_key: str,
-) -> Dict[str, Union[str, List[List[List[Union[float, None]]]]]]:
+) -> Dict[str, Union[str, np.ndarray]]:
     data = loadmat(path)
     arr = data[array_key].squeeze()
     arr = np.moveaxis(arr, -1, 0)
@@ -49,8 +49,8 @@ def matlab_to_json(
     return {
         "header": data["__header__"].decode("utf-8"),
         "version": data["__version__"],
-        "control": arr[control_indices].tolist(),
-        "diagnosed": arr[diagnosed_indices].tolist(),
+        "control": arr[control_indices],
+        "diagnosed": arr[diagnosed_indices],
     }
 
 

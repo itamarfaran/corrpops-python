@@ -27,8 +27,8 @@ def drop_columns_by_na_threshold(
         warnings.warn(f"using {threshold.round(5)} as threshold")
 
     na_counts = np.isnan(arr).mean(0)[0]
-    idx_keep = np.argwhere(na_counts < threshold).flatten()
-    idx_drop = np.argwhere(na_counts >= threshold).flatten()
+    idx_keep = np.argwhere(na_counts <= threshold).flatten()
+    idx_drop = np.argwhere(na_counts > threshold).flatten()
     arr = arr[..., idx_keep, :][..., :, idx_keep]
     return arr, idx_drop
 

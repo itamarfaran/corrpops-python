@@ -61,7 +61,7 @@ def create_samples(
     diagnosed_ar=None,
     diagnosed_ma=None,
     size=1,
-    random_effect=None,
+    random_effect=0.0,
     seed=None,
 ):
     rng = np.random.default_rng(seed)
@@ -72,6 +72,7 @@ def create_samples(
         scale=control_correlation,
         ar=control_ar,
         ma=control_ma,
+        random_effect=random_effect,
         size=control_n * size,
         random_state=rng,
     ).reshape(size, control_n, p, p)
@@ -81,6 +82,7 @@ def create_samples(
         scale=diagnosed_correlation,
         ar=diagnosed_ar,
         ma=diagnosed_ma,
+        random_effect=random_effect,
         size=diagnosed_n * size,
         random_state=rng,
     ).reshape(size, diagnosed_n, p, p)
@@ -103,7 +105,7 @@ def create_samples_from_parameters(
     diagnosed_ar=None,
     diagnosed_ma=None,
     size=1,
-    random_effect=None,
+    random_effect=0.0,
     seed=None,
 ):
     g11 = link_function.func(

@@ -21,10 +21,10 @@ control, diagnosed = create_samples_from_parameters(
     t_length=100,
     control_ar=[0.5, 0.2],
     control_ma=0.2,
-    diagnosed_ar=[0.5, 0.2],
-    diagnosed_ma=0.2,
+    diagnosed_ar=0.0,
+    diagnosed_ma=0.0,
+    random_effect=0.05,
     size=1,
-    random_effect=None,
     seed=12,
 )
 

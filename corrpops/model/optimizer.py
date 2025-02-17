@@ -92,15 +92,15 @@ class CorrPopsOptimizer:
             }
         )
 
-    def check_positive_definite(self, theta, alpha):
-        # todo: handle false
-
-        if not is_positive_definite(vector_to_triangle(theta, diag_value=1)):
-            pass
-        if not is_positive_definite(
-            self.link_function.func(theta, alpha, self.dim_alpha)
-        ):
-            pass
+    def _check_positive_definite(self, theta, alpha):
+        is_positive_definite_ = (
+            is_positive_definite(vector_to_triangle(theta, diag_value=1)),
+            is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)),
+        )
+        if not all(is_positive_definite_):
+            warnings.warn(
+                "initial parameters dont yield with non positive-definite matrices"
+            )
 
     def optimize(
         self,
@@ -113,23 +113,24 @@ class CorrPopsOptimizer:
         self.p_ = int((1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1]) / 2))
 
         if alpha0 is None:
-            alpha0 = np.full((self.p_, self.dim_alpha), self.link_function.null_value)
+            alpha = np.full((self.p_, self.dim_alpha), self.link_function.null_value)
+        else:
+            alpha = alpha0
+
         if theta0 is None:
-            theta0 = theta_of_alpha(
-                alpha=alpha0,
+            theta = theta_of_alpha(
+                alpha=alpha,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=self.link_function,
                 d=self.dim_alpha,
             )
+        else:
+            theta = theta0
 
-        self.check_positive_definite(theta0, alpha0)
-
+        self._check_positive_definite(theta, alpha)
         if weights is not None:
             self.inv_cov_ = linalg.inv(weights)
-
-        theta = theta0
-        alpha = alpha0
 
         self.steps_ = []
         self.update_steps(

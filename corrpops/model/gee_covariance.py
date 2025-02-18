@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Callable, Literal, TypedDict
 
 import numpy as np
 
@@ -11,8 +10,7 @@ from .likelihood import theta_of_alpha
 from .optimizer import CorrPopsOptimizer
 
 
-@dataclass
-class GeeProperties:
+class GeeProperties(TypedDict):
     data: np.ndarray
     jacobian: np.ndarray
     expected_value: np.ndarray
@@ -138,20 +136,20 @@ class GeeCovarianceEstimator:
 
     @staticmethod
     def calc_i0(properties: GeeProperties):
-        return properties.data.shape[0] * (
-            properties.jacobian.T @ properties.inv_cov @ properties.jacobian
+        return properties["data"].shape[0] * (
+            properties["jacobian"].T @ properties["inv_cov"] @ properties["jacobian"]
         )
 
     @staticmethod
     def calc_i1(properties: GeeProperties):
-        residuals = properties.data - properties.expected_value
-        covariance = residuals.T @ residuals / properties.df
-        return properties.data.shape[0] * (
-            properties.jacobian.T
-            @ properties.inv_cov
+        residuals = properties["data"] - properties["expected_value"]
+        covariance = residuals.T @ residuals / properties["df"]
+        return properties["data"].shape[0] * (
+            properties["jacobian"].T
+            @ properties["inv_cov"]
             @ covariance
-            @ properties.inv_cov
-            @ properties.jacobian
+            @ properties["inv_cov"]
+            @ properties["jacobian"]
         )
 
     def compute(

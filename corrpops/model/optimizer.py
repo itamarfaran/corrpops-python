@@ -29,10 +29,27 @@ def results_to_json(results: CorrPopsOptimizerResults) -> Dict[str, Any]:
     out["theta"] = out["theta"].tolist()
     out["alpha"] = out["alpha"].tolist()
     out["inv_cov"] = (
-        []
-        if out["inv_cov"] is None
-        else triangle_to_vector(out["inv_cov"], diag=True).tolist()
+        triangle_to_vector(out["inv_cov"], diag=True).tolist()
+        if out["inv_cov"] is not None
+        else []
     )
+    return out
+
+
+def results_from_json(json_: Dict[str, Any]) -> CorrPopsOptimizerResults:
+    out: CorrPopsOptimizerResults = {
+        "theta": np.array(json_["theta"]),
+        "alpha": np.array(json_["alpha"]),
+        "inv_cov": (
+            vector_to_triangle(np.array(json_["inv_cov"]), diag=True)
+            if json_["inv_cov"]
+            else None
+        ),
+        "p": json_["p"],
+        "steps": [],
+        "dim_alpha": json_["dim_alpha"],
+        "link_function": json_["link_function"],
+    }
     return out
 
 

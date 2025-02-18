@@ -11,8 +11,13 @@ from .covariance_of_correlation import (
     covariance_of_correlation,
 )
 from .gee_covariance import GeeCovarianceEstimator
-from .link_functions import MultiplicativeIdentity
-from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults, results_to_json
+from .link_functions import BaseLinkFunction, MultiplicativeIdentity
+from .optimizer import (
+    CorrPopsOptimizer,
+    CorrPopsOptimizerResults,
+    results_to_json,
+    results_from_json,
+)
 
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
@@ -23,7 +28,7 @@ WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 class CorrPopsEstimator:
     def __init__(
         self,
-        link_function=MultiplicativeIdentity(),
+        link_function: BaseLinkFunction = MultiplicativeIdentity(),
         *,
         optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
         gee_estimator: GeeCovarianceEstimator = GeeCovarianceEstimator(),
@@ -54,16 +59,68 @@ class CorrPopsEstimator:
         self.optimizer_results_: Optional[CorrPopsOptimizerResults] = None
         self.naive_optimizer_results_: Optional[CorrPopsOptimizerResults] = None
 
+    @staticmethod
+    def _pop_link_function(link_function, dictionary):
+        link_function.check_name_equal(dictionary["link_function"])
+        dictionary = dictionary.copy()
+        dictionary["link_function"] = link_function
+        return dictionary
+
+    @classmethod
+    def from_json(
+        cls,
+        link_function: BaseLinkFunction,
+        json_: Dict[str, Dict[str, Dict[str, Any]]],
+    ):
+        if "params" in json_:
+            estimator = cls(
+                link_function=link_function,
+                optimizer=CorrPopsOptimizer(
+                    **cls._pop_link_function(
+                        link_function, json_["params"]["optimizer"]
+                    )
+                ),
+                naive_optimizer=CorrPopsOptimizer(
+                    **cls._pop_link_function(
+                        link_function, json_["params"]["naive_optimizer"]
+                    )
+                ),
+                gee_estimator=GeeCovarianceEstimator(
+                    **cls._pop_link_function(
+                        link_function, json_["params"]["gee_estimator"]
+                    )
+                ),
+            )
+        else:
+            estimator = cls(link_function=link_function)
+
+        if "results" in json_:
+            if "optimizer" in json_["results"]:
+                estimator.optimizer_results_ = results_from_json(
+                    json_["results"]["optimizer"]
+                )
+                estimator.alpha_ = estimator.optimizer_results_["alpha"]
+                estimator.theta_ = estimator.optimizer_results_["theta"]
+            if "naive_optimizer" in json_["results"]:
+                estimator.naive_optimizer_results_ = results_from_json(
+                    json_["results"]["naive_optimizer"]
+                )
+            if "gee_estimator" in json_["results"]:
+                estimator.cov_ = vector_to_triangle(
+                    np.array(json_["results"]["gee_estimator"]["cov"]), diag=True
+                )
+        return estimator
+
     def to_json(
         self,
         save_results: bool = True,
         save_params: bool = True,
         save_naive: bool = False,
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
-        out = {}
+        json_ = {}
 
         if save_params:
-            out["params"] = {
+            json_["params"] = {
                 "optimizer": self.optimizer.get_params(),
                 "naive_optimizer": self.naive_optimizer.get_params()
                 if self.naive_optimizer
@@ -74,22 +131,22 @@ class CorrPopsEstimator:
             }
 
         if save_results:
-            out["results"] = {}
+            json_["results"] = {}
 
             if self.optimizer_results_:
-                out["results"]["optimizer"] = results_to_json(self.optimizer_results_)
+                json_["results"]["optimizer"] = results_to_json(self.optimizer_results_)
 
             if save_naive and self.naive_optimizer_results_:
-                out["results"]["naive_optimizer"] = results_to_json(
+                json_["results"]["naive_optimizer"] = results_to_json(
                     self.naive_optimizer_results_
                 )
 
             if self.cov_ is not None:
-                out["results"]["gee_estimator"] = {
+                json_["results"]["gee_estimator"] = {
                     "cov": triangle_to_vector(self.cov_, diag=True).tolist()
                 }
 
-        return out
+        return json_
 
     def fit(
         self,

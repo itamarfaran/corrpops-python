@@ -1,6 +1,6 @@
 import copy
 from collections import namedtuple
-from typing import Optional, Union, Literal
+from typing import Any, Dict, Optional, Union, Literal
 
 import numpy as np
 from scipy import stats
@@ -12,7 +12,7 @@ from .covariance_of_correlation import (
 )
 from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
-from .optimizer import CorrPopsOptimizer
+from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
@@ -31,7 +31,7 @@ class CorrPopsEstimator:
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         self.optimizer = optimizer
-        self.optimizer.link_function = link_function
+        self.optimizer.link_function = link_function  # todo: this is ugly
 
         self.gee_estimator = gee_estimator
         self.gee_estimator.link_function = link_function
@@ -46,16 +46,50 @@ class CorrPopsEstimator:
             self.naive_optimizer.link_function = link_function
 
         self.non_positive = non_positive
-        self.alpha_ = None
-        self.theta_ = None
-        self.cov_ = None
+        self.is_fitted = False
+
+        self.alpha_: Optional[np.ndarray] = None
+        self.theta_: Optional[np.ndarray] = None
+        self.cov_: Optional[np.ndarray] = None
+        self.optimizer_results_: Optional[CorrPopsOptimizerResults] = None
+        self.naive_optimizer_results_: Optional[CorrPopsOptimizerResults] = None
+
+    def to_json(
+        self,
+        save_naive: bool = False,
+        save_params: bool = False,
+    ) -> Dict[str, Dict[str, Any]]:
+        out = {
+            "optimizer_results": {},
+            "naive_optimizer_results": {},
+            "gee_estimator_results": {},
+        }
+
+        if self.optimizer_results_:
+            out["optimizer_results"] = self.optimizer.to_json(
+                self.optimizer_results_,
+                self.optimizer.get_params() if save_params else {},
+            )
+
+        if save_naive and self.naive_optimizer_results_:
+            out["naive_optimizer_results"] = self.naive_optimizer.to_json(
+                self.naive_optimizer_results_,
+                self.naive_optimizer.get_params() if save_params else {},
+            )
+
+        if self.gee_estimator is not None:
+            out["gee_estimator_results"] = {
+                "cov": None if self.cov_ is None else self.cov_.tolist(),
+                "params": self.gee_estimator.get_params() if save_params else {},
+            }
+
+        return out
 
     def fit(self, control_arr, diagnosed_arr):
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
         )
-
         control_arr = triangle_to_vector(control_arr)
         diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
@@ -70,25 +104,25 @@ class CorrPopsEstimator:
             alpha0 = naive_optimizer_results["alpha"]
             theta0 = naive_optimizer_results["theta"]
 
-        optimizer_results = self.optimizer.optimize(
+        self.optimizer_results_ = self.optimizer.optimize(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
             alpha0=alpha0,
             theta0=theta0,
             weights=weight_matrix,
         )
-
-        # todo: is this all i need from optimizer_results?
-        self.alpha_ = optimizer_results["alpha"]
-        self.theta_ = optimizer_results["theta"]
+        self.alpha_ = self.optimizer_results_["alpha"]
+        self.theta_ = self.optimizer_results_["theta"]
 
         if self.gee_estimator is not None:
             self.cov_ = self.gee_estimator.compute(
                 control_arr,
                 diagnosed_arr,
-                optimizer_results,
+                self.optimizer_results_,
                 self.non_positive,
             )
+        self.is_fitted = True
+        return self
 
     def inference(
         self,
@@ -100,10 +134,7 @@ class CorrPopsEstimator:
     ):
         alpha_sd = np.sqrt(np.diagonal(self.cov_))
         critical_value = stats.norm.ppf(1 - sig_level / 2)
-        # critical_value = stats.multivariate_normal.ppf(
-        #     1 - sig_level / 2,
-        #     cov=cov_to_corr(self.cov_),
-        # )
+        # critical_value = stats.multivariate_normal.ppf(1 - sig_level / 2, cov=cov_to_corr(self.cov_))
 
         result = {
             "estimate": self.alpha_,

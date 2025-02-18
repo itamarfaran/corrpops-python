@@ -72,8 +72,7 @@ class CorrPopsOptimizer:
         out["theta"] = out["theta"].tolist()
         out["alpha"] = out["alpha"].tolist()
         out["inv_cov"] = [] if out["inv_cov"] is None else out["inv_cov"].tolist()
-        if params is not None:
-            out["params"] = params
+        out["params"] = params if params else {}
         return out
 
     def _check_positive_definite(self, theta: np.ndarray, alpha: np.ndarray):

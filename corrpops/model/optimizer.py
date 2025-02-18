@@ -60,6 +60,47 @@ class CorrPopsOptimizer:
             self.minimize_kwargs["options"] = {}
         self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
 
+    @classmethod
+    def to_json(
+        cls,
+        results: CorrPopsOptimizerResults,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        out: Dict[str, Any] = results.copy()
+
+        out.pop("steps")
+        out["theta"] = out["theta"].tolist()
+        out["alpha"] = out["alpha"].tolist()
+        out["inv_cov"] = [] if out["inv_cov"] is None else out["inv_cov"].tolist()
+        if params is not None:
+            out["params"] = params
+        return out
+
+    def _check_positive_definite(self, theta: np.ndarray, alpha: np.ndarray):
+        is_positive_definite_ = (
+            is_positive_definite(vector_to_triangle(theta, diag_value=1)),
+            is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)),
+        )
+        if not all(is_positive_definite_):
+            warnings.warn(
+                "initial parameters dont yield with non positive-definite matrices"
+            )
+
+    def get_params(self):
+        return {
+            "link_function": self.link_function.name,
+            "dim_alpha": self.dim_alpha,
+            "rel_tol": self.rel_tol,
+            "abs_tol": self.abs_tol,
+            "abs_p": self.abs_p,
+            "early_stop": self.early_stop,
+            "min_iter": self.min_iter,
+            "max_iter": self.max_iter,
+            "reg_lambda": self.reg_lambda,
+            "reg_p": self.reg_p,
+            "minimize_kwargs": self.minimize_kwargs,
+        }
+
     def update_steps(
         self,
         steps: List[Dict[str, Any]],
@@ -93,16 +134,6 @@ class CorrPopsOptimizer:
             "optimize_results": optimize_results,
         }
         steps.append(step)
-
-    def _check_positive_definite(self, theta: np.ndarray, alpha: np.ndarray):
-        is_positive_definite_ = (
-            is_positive_definite(vector_to_triangle(theta, diag_value=1)),
-            is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)),
-        )
-        if not all(is_positive_definite_):
-            warnings.warn(
-                "initial parameters dont yield with non positive-definite matrices"
-            )
 
     def optimize(
         self,

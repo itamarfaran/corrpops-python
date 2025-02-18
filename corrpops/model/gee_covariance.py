@@ -35,6 +35,15 @@ class GeeCovarianceEstimator:
         self.sample_size = sample_size
         self.df_method = df_method
 
+    def get_params(self):
+        return {
+            "link_function": self.link_function.name,
+            "est_mu": self.est_mu,
+            "jacobian_method": self.jacobian_method,
+            "sample_size": self.sample_size,
+            "df_method": self.df_method,
+        }
+
     def create_properties(
         self,
         arr: np.ndarray,

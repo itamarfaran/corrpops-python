@@ -19,6 +19,7 @@ WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
 # todo: implement save and load!
 
+
 class CorrPopsEstimator:
     def __init__(
         self,
@@ -33,6 +34,7 @@ class CorrPopsEstimator:
         self.optimizer.link_function = link_function
 
         self.gee_estimator = gee_estimator
+        self.gee_estimator.link_function = link_function
 
         if type(naive_optimizer) is bool:
             if naive_optimizer:
@@ -58,29 +60,33 @@ class CorrPopsEstimator:
         diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
         if self.naive_optimizer is None:
-            alpha_ = None
-            theta_ = None
+            alpha0 = None
+            theta0 = None
         else:
-            self.naive_optimizer.optimize(control_arr, diagnosed_arr)
-            alpha_ = self.naive_optimizer.alpha_
-            theta_ = self.naive_optimizer.theta_
+            naive_optimizer_results = self.naive_optimizer.optimize(
+                control_arr=control_arr,
+                diagnosed_arr=diagnosed_arr,
+            )
+            alpha0 = naive_optimizer_results["alpha"]
+            theta0 = naive_optimizer_results["theta"]
 
-        self.optimizer.optimize(
-            control_arr,
-            diagnosed_arr,
-            alpha_,
-            theta_,
-            weight_matrix,
+        optimizer_results = self.optimizer.optimize(
+            control_arr=control_arr,
+            diagnosed_arr=diagnosed_arr,
+            alpha0=alpha0,
+            theta0=theta0,
+            weights=weight_matrix,
         )
 
-        self.alpha_ = self.optimizer.alpha_
-        self.theta_ = self.optimizer.theta_
+        # todo: is this all i need from optimizer_results?
+        self.alpha_ = optimizer_results["alpha"]
+        self.theta_ = optimizer_results["theta"]
 
         if self.gee_estimator is not None:
             self.cov_ = self.gee_estimator.compute(
                 control_arr,
                 diagnosed_arr,
-                self.optimizer,
+                optimizer_results,
                 self.non_positive,
             )
 

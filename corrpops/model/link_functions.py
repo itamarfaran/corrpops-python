@@ -29,6 +29,10 @@ class BaseLinkFunction(ABC):
     def __init__(self, transformer=Transformer(_identity, _identity)):
         self.transformer = transformer
 
+    def check_name_equal(self, name: str):
+        if name != self.name:
+            raise ValueError("link function mismatch")
+
     @abstractmethod
     def func(self, t, a, d):
         pass

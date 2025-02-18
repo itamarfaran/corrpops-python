@@ -12,7 +12,7 @@ from .covariance_of_correlation import (
 )
 from .gee_covariance import GeeCovarianceEstimator
 from .link_functions import MultiplicativeIdentity
-from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
+from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults, results_to_json
 
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
@@ -26,7 +26,7 @@ class CorrPopsEstimator:
         link_function=MultiplicativeIdentity(),
         *,
         optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
-        gee_estimator: Optional[GeeCovarianceEstimator] = GeeCovarianceEstimator(),
+        gee_estimator: GeeCovarianceEstimator = GeeCovarianceEstimator(),
         naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
@@ -56,36 +56,47 @@ class CorrPopsEstimator:
 
     def to_json(
         self,
+        save_results: bool = True,
+        save_params: bool = True,
         save_naive: bool = False,
-        save_params: bool = False,
-    ) -> Dict[str, Dict[str, Any]]:
-        out = {
-            "optimizer_results": {},
-            "naive_optimizer_results": {},
-            "gee_estimator_results": {},
-        }
+    ) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        out = {}
 
-        if self.optimizer_results_:
-            out["optimizer_results"] = self.optimizer.to_json(
-                self.optimizer_results_,
-                self.optimizer.get_params() if save_params else {},
-            )
-
-        if save_naive and self.naive_optimizer_results_:
-            out["naive_optimizer_results"] = self.naive_optimizer.to_json(
-                self.naive_optimizer_results_,
-                self.naive_optimizer.get_params() if save_params else {},
-            )
-
-        if self.gee_estimator is not None:
-            out["gee_estimator_results"] = {
-                "cov": None if self.cov_ is None else self.cov_.tolist(),
-                "params": self.gee_estimator.get_params() if save_params else {},
+        if save_params:
+            out["params"] = {
+                "optimizer": self.optimizer.get_params(),
+                "naive_optimizer": self.naive_optimizer.get_params()
+                if self.naive_optimizer
+                else {},
+                "gee_estimator": self.gee_estimator.get_params()
+                if self.gee_estimator
+                else {},
             }
+
+        if save_results:
+            out["results"] = {}
+
+            if self.optimizer_results_:
+                out["results"]["optimizer"] = results_to_json(self.optimizer_results_)
+
+            if save_naive and self.naive_optimizer_results_:
+                out["results"]["naive_optimizer"] = results_to_json(
+                    self.naive_optimizer_results_
+                )
+
+            if self.cov_ is not None:
+                out["results"]["gee_estimator"] = {
+                    "cov": triangle_to_vector(self.cov_, diag=True).tolist()
+                }
 
         return out
 
-    def fit(self, control_arr, diagnosed_arr):
+    def fit(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+        compute_cov: bool = True,
+    ):
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
@@ -113,15 +124,21 @@ class CorrPopsEstimator:
         )
         self.alpha_ = self.optimizer_results_["alpha"]
         self.theta_ = self.optimizer_results_["theta"]
-
-        if self.gee_estimator is not None:
-            self.cov_ = self.gee_estimator.compute(
-                control_arr,
-                diagnosed_arr,
-                self.optimizer_results_,
-                self.non_positive,
-            )
         self.is_fitted = True
+
+        if compute_cov:
+            self.compute_covariance(
+                control_arr=control_arr, diagnosed_arr=diagnosed_arr
+            )
+        return self
+
+    def compute_covariance(self, control_arr: np.ndarray, diagnosed_arr: np.ndarray):
+        self.cov_ = self.gee_estimator.compute(
+            control_arr,
+            diagnosed_arr,
+            self.optimizer_results_,
+            self.non_positive,
+        )
         return self
 
     def inference(

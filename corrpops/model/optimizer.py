@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg, optimize
 
 from linalg.matrix import is_positive_definite
-from linalg.triangle_vector import vector_to_triangle
+from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from .likelihood import theta_of_alpha, sum_of_squares
 from .link_functions import BaseLinkFunction
@@ -21,6 +21,19 @@ class CorrPopsOptimizerResults(TypedDict):
     steps: List[Dict[str, Any]]
     dim_alpha: int
     link_function: str
+
+
+def results_to_json(results: CorrPopsOptimizerResults) -> Dict[str, Any]:
+    out: Dict[str, Any] = results.copy()
+    out.pop("steps")
+    out["theta"] = out["theta"].tolist()
+    out["alpha"] = out["alpha"].tolist()
+    out["inv_cov"] = (
+        []
+        if out["inv_cov"] is None
+        else triangle_to_vector(out["inv_cov"], diag=True).tolist()
+    )
+    return out
 
 
 class CorrPopsOptimizer:
@@ -59,21 +72,6 @@ class CorrPopsOptimizer:
         if "options" not in self.minimize_kwargs:
             self.minimize_kwargs["options"] = {}
         self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
-
-    @classmethod
-    def to_json(
-        cls,
-        results: CorrPopsOptimizerResults,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        out: Dict[str, Any] = results.copy()
-
-        out.pop("steps")
-        out["theta"] = out["theta"].tolist()
-        out["alpha"] = out["alpha"].tolist()
-        out["inv_cov"] = [] if out["inv_cov"] is None else out["inv_cov"].tolist()
-        out["params"] = params if params else {}
-        return out
 
     def _check_positive_definite(self, theta: np.ndarray, alpha: np.ndarray):
         is_positive_definite_ = (

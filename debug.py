@@ -27,13 +27,15 @@ control, diagnosed = create_samples_from_parameters(
     size=1,
     random_state=12,
 )
+control, diagnosed = control[0], diagnosed[0]
 
 
 model = CorrPopsEstimator(
     # link_function=MultiplicativeIdentity(transformer=Transformer(np.log, np.exp))
     optimizer=CorrPopsOptimizer(verbose=True),
+    non_positive="warn",
 )
-model.fit(control[0], diagnosed[0])
+model.fit(control, diagnosed)
 print(
     pd.DataFrame(
         model.inference(
@@ -42,4 +44,4 @@ print(
         )
     )
 )
-print(model.score(control[0], diagnosed[0]))
+print(model.score(control, diagnosed))

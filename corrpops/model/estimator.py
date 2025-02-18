@@ -17,6 +17,8 @@ from .optimizer import CorrPopsOptimizer
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
 
+# todo: implement save and load!
+
 class CorrPopsEstimator:
     def __init__(
         self,
@@ -79,6 +81,7 @@ class CorrPopsEstimator:
                 control_arr,
                 diagnosed_arr,
                 self.optimizer,
+                self.non_positive,
             )
 
     def inference(
@@ -139,7 +142,7 @@ class CorrPopsEstimator:
 
     def score(self, control_arr, diagnosed_arr):
         null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
-        null_cov = covariance_of_correlation(null_mean)
+        null_cov = covariance_of_correlation(null_mean, self.non_positive)
 
         g11 = self.optimizer.link_function.func(
             t=self.theta_,
@@ -155,13 +158,14 @@ class CorrPopsEstimator:
                 x=control_arr,
                 mean=self.theta_,
                 cov=covariance_of_correlation(
-                    vector_to_triangle(self.theta_, diag_value=1)
+                    vector_to_triangle(self.theta_, diag_value=1),
+                    self.non_positive,
                 ),
             ).sum()
             + stats.multivariate_normal.logpdf(
                 x=diagnosed_arr,
                 mean=triangle_to_vector(g11),
-                cov=covariance_of_correlation(g11),
+                cov=covariance_of_correlation(g11, self.non_positive),
             ).sum()
         )
         null_log_likelihood = (

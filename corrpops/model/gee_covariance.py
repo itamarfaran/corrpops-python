@@ -39,6 +39,7 @@ class GeeCovarianceEstimator:
         optimizer: CorrPopsOptimizer,
         jacobian_func: Callable[[np.ndarray], np.ndarray],
         expected_value: np.ndarray,
+        non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if self.jacobian_method == "simple":
             jacobian = simple_jacobian(jacobian_func, optimizer.alpha_)
@@ -47,6 +48,7 @@ class GeeCovarianceEstimator:
 
         cov, _ = average_covariance_of_correlation(
             vector_to_triangle(arr, diag_value=1),
+            non_positive=non_positive,
             # don't I need estimated n for something?
         )
         inv_cov = np.linalg.inv(cov)
@@ -73,6 +75,7 @@ class GeeCovarianceEstimator:
         diagnosed_arr,
         optimizer,
         d,
+        non_positive,
     ):
         def _inner(a):
             return theta_of_alpha(
@@ -92,6 +95,7 @@ class GeeCovarianceEstimator:
             optimizer=optimizer,
             jacobian_func=_inner,
             expected_value=expected_value,
+            non_positive=non_positive,
         )
 
     def create_diagnosed_properties(
@@ -100,6 +104,7 @@ class GeeCovarianceEstimator:
         diagnosed_arr,
         optimizer,
         d,
+        non_positive,
     ):
         def _inner(a):
             theta = theta_of_alpha(
@@ -128,6 +133,7 @@ class GeeCovarianceEstimator:
             optimizer=optimizer,
             jacobian_func=_inner,
             expected_value=expected_value,
+            non_positive=non_positive,
         )
 
     @staticmethod
@@ -150,18 +156,19 @@ class GeeCovarianceEstimator:
 
     def compute(
         self,
-        control_arr,
-        diagnosed_arr,
-        optimizer,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+        optimizer: CorrPopsOptimizer,
+        non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         p = 0.5 + np.sqrt(1 + 8 * control_arr.shape[-1]) / 2
         d = int(optimizer.alpha_.size / p)
 
         control_properties = self.create_control_properties(
-            control_arr, diagnosed_arr, optimizer, d
+            control_arr, diagnosed_arr, optimizer, d, non_positive,
         )
         diagnosed_properties = self.create_diagnosed_properties(
-            control_arr, diagnosed_arr, optimizer, d
+            control_arr, diagnosed_arr, optimizer, d, non_positive,
         )
         i0 = self.calc_i0(control_properties) + self.calc_i0(diagnosed_properties)
         i1 = self.calc_i1(control_properties) + self.calc_i1(diagnosed_properties)

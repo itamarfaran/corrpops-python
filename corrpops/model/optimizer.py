@@ -56,8 +56,8 @@ def results_from_json(json_: Dict[str, Any]) -> CorrPopsOptimizerResults:
 class CorrPopsOptimizer:
     def __init__(
         self,
+        link_function: Optional[BaseLinkFunction] = None,
         *,
-        link_function: BaseLinkFunction = None,
         dim_alpha: int = 1,
         rel_tol: float = 1e-06,
         abs_tol: float = 0.0,
@@ -96,9 +96,7 @@ class CorrPopsOptimizer:
             is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)),
         )
         if not all(is_positive_definite_):
-            warnings.warn(
-                "initial parameters dont yield with non positive-definite matrices"
-            )
+            warnings.warn("initial parameters dont yield positive-definite matrices")
 
     def get_params(self):
         return {
@@ -114,6 +112,13 @@ class CorrPopsOptimizer:
             "reg_p": self.reg_p,
             "minimize_kwargs": self.minimize_kwargs,
         }
+
+    def set_params(self, **params):
+        for k, v in params.items():
+            if not hasattr(self, k):
+                raise ValueError(f"Invalid parameter {k} for estimator {self}.")
+            setattr(self, k, v)
+        return self
 
     def update_steps(
         self,
@@ -213,8 +218,8 @@ class CorrPopsOptimizer:
                 self.minimize_kwargs.get("method", "") != "TNC"
                 and self.adaptive_maxiter
             ):
-                self.minimize_kwargs["options"]["maxiter"] = np.clip(
-                    i * 100, 500, 2_000
+                self.minimize_kwargs["options"]["maxiter"] = int(
+                    np.clip(i * 100, 500, 2_000)
                 )
 
             theta = theta_of_alpha(

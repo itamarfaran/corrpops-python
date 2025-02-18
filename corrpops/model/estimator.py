@@ -22,9 +22,6 @@ from .optimizer import (
 WilksTestResult = namedtuple("WilksTestResult", ["chi2_val", "df", "p_val"])
 
 
-# todo: implement save and load!
-
-
 class CorrPopsEstimator:
     def __init__(
         self,
@@ -35,20 +32,17 @@ class CorrPopsEstimator:
         naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
-        self.optimizer = optimizer
-        self.optimizer.link_function = link_function  # todo: this is ugly
+        self.optimizer = optimizer.set_params(link_function=link_function)
+        self.gee_estimator = gee_estimator.set_params(link_function=link_function)
 
-        self.gee_estimator = gee_estimator
-        self.gee_estimator.link_function = link_function
-
-        if type(naive_optimizer) is bool:
-            if naive_optimizer:
-                self.naive_optimizer = copy.deepcopy(self.optimizer)
-            else:
-                self.naive_optimizer = None
+        if isinstance(naive_optimizer, CorrPopsOptimizer):
+            self.naive_optimizer = naive_optimizer.set_params(
+                link_function=link_function
+            )
+        elif naive_optimizer:
+            self.naive_optimizer = copy.deepcopy(self.optimizer)
         else:
-            self.naive_optimizer = naive_optimizer
-            self.naive_optimizer.link_function = link_function
+            self.naive_optimizer = None
 
         self.non_positive = non_positive
         self.is_fitted = False
@@ -59,43 +53,38 @@ class CorrPopsEstimator:
         self.optimizer_results_: Optional[CorrPopsOptimizerResults] = None
         self.naive_optimizer_results_: Optional[CorrPopsOptimizerResults] = None
 
-    @staticmethod
-    def _pop_link_function(link_function, dictionary):
-        link_function.check_name_equal(dictionary["link_function"])
-        dictionary = dictionary.copy()
-        dictionary["link_function"] = link_function
-        return dictionary
+    @property
+    def link_function(self):
+        return self.optimizer.link_function
 
     @classmethod
     def from_json(
         cls,
         link_function: BaseLinkFunction,
         json_: Dict[str, Dict[str, Dict[str, Any]]],
+        non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if "params" in json_:
+            link_function.check_name_equal(
+                json_["params"]["optimizer"]["link_function"]
+            )
             estimator = cls(
                 link_function=link_function,
-                optimizer=CorrPopsOptimizer(
-                    **cls._pop_link_function(
-                        link_function, json_["params"]["optimizer"]
-                    )
-                ),
-                naive_optimizer=CorrPopsOptimizer(
-                    **cls._pop_link_function(
-                        link_function, json_["params"]["naive_optimizer"]
-                    )
-                ),
+                optimizer=CorrPopsOptimizer(**json_["params"]["optimizer"]),
+                naive_optimizer=CorrPopsOptimizer(**json_["params"]["naive_optimizer"]),
                 gee_estimator=GeeCovarianceEstimator(
-                    **cls._pop_link_function(
-                        link_function, json_["params"]["gee_estimator"]
-                    )
+                    **json_["params"]["gee_estimator"]
                 ),
+                non_positive=non_positive,
             )
         else:
-            estimator = cls(link_function=link_function)
+            estimator = cls(link_function=link_function, non_positive=non_positive)
 
         if "results" in json_:
             if "optimizer" in json_["results"]:
+                link_function.check_name_equal(
+                    json_["results"]["optimizer"]["link_function"]
+                )
                 estimator.optimizer_results_ = results_from_json(
                     json_["results"]["optimizer"]
                 )
@@ -190,12 +179,20 @@ class CorrPopsEstimator:
         return self
 
     def compute_covariance(self, control_arr: np.ndarray, diagnosed_arr: np.ndarray):
-        self.cov_ = self.gee_estimator.compute(
-            control_arr,
-            diagnosed_arr,
-            self.optimizer_results_,
-            self.non_positive,
-        )
+        try:
+            self.cov_ = self.gee_estimator.compute(
+                control_arr=control_arr,
+                diagnosed_arr=diagnosed_arr,
+                optimizer_results=self.optimizer_results_,
+                non_positive=self.non_positive,
+            )
+        except ValueError:
+            self.cov_ = self.gee_estimator.compute(
+                control_arr=triangle_to_vector(control_arr),
+                diagnosed_arr=triangle_to_vector(diagnosed_arr),
+                optimizer_results=self.optimizer_results_,
+                non_positive=self.non_positive,
+            )
         return self
 
     def inference(
@@ -213,8 +210,7 @@ class CorrPopsEstimator:
         result = {
             "estimate": self.alpha_,
             "std": std_const * alpha_sd,
-            "z_value": (self.alpha_ - self.optimizer.link_function.null_value)
-            / alpha_sd,
+            "z_value": (self.alpha_ - self.link_function.null_value) / alpha_sd,
             "ci_lower": self.alpha_ - critical_value * alpha_sd,
             "ci_upper": self.alpha_ - critical_value * alpha_sd,
         }
@@ -243,9 +239,7 @@ class CorrPopsEstimator:
         if known_alpha is None:
             result["known_alpha"] = np.full_like(self.alpha_, np.nan)
         else:
-            result[
-                "known_alpha"
-            ] = self.optimizer.link_function.transformer.inv_transform(
+            result["known_alpha"] = self.link_function.transformer.inv_transform(
                 known_alpha.flatten()
             )
 
@@ -255,7 +249,7 @@ class CorrPopsEstimator:
         null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
         null_cov = covariance_of_correlation(null_mean, self.non_positive)
 
-        g11 = self.optimizer.link_function.func(
+        g11 = self.link_function.func(
             t=self.theta_,
             a=self.alpha_,
             d=self.optimizer.dim_alpha,

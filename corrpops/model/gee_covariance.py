@@ -1,4 +1,4 @@
-from typing import Callable, Literal, TypedDict
+from typing import Callable, Literal, TypedDict, Optional
 
 import numpy as np
 
@@ -22,8 +22,8 @@ class GeeProperties(TypedDict):
 class GeeCovarianceEstimator:
     def __init__(
         self,
+        link_function: Optional[BaseLinkFunction] = None,
         *,
-        link_function: BaseLinkFunction = None,
         est_mu: bool = True,
         jacobian_method: Literal["simple", "richardson"] = "richardson",
         sample_size: Literal["estimated", "naive"] = "estimated",
@@ -43,6 +43,13 @@ class GeeCovarianceEstimator:
             "sample_size": self.sample_size,
             "df_method": self.df_method,
         }
+
+    def set_params(self, **params):
+        for k, v in params.items():
+            if not hasattr(self, k):
+                raise ValueError(f"Invalid parameter {k} for estimator {self}.")
+            setattr(self, k, v)
+        return self
 
     def create_properties(
         self,

@@ -60,7 +60,9 @@ def inference(
         )[1]
     else:
         raise ModuleNotFoundError(
-            "to use p_adjust_method different from 'bonferroni' please install statsmodels"
+            "missing optional dependency statsmodels. "
+            "only p_adjust_method='bonferroni' is supported. "
+            "for other methods please install statsmodels."
         )
 
     if known_alpha is None:

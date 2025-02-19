@@ -61,7 +61,9 @@ def piece_wise_comparison(
         p_vals_adjusted = multipletests(pvals=p_vals, method=p_adjust_method)[1]
     else:
         raise ModuleNotFoundError(
-            "to use p_adjust_method different from 'bonferroni' please install statsmodels"
+            "missing optional dependency statsmodels. "
+            "only p_adjust_method='bonferroni' is supported. "
+            "for other methods please install statsmodels."
         )
 
     return {

@@ -13,6 +13,7 @@ from .gee_covariance import GeeCovarianceEstimator
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
+# todo: add ray
 def jackknife(
     index: Union[int, Tuple[int, ...]],
     optimizer: CorrPopsOptimizer,

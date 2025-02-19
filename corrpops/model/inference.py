@@ -4,6 +4,13 @@ from typing import Dict, Literal, Optional
 import numpy as np
 from scipy import stats
 
+try:
+    from statsmodels.stats.multitest import multipletests
+
+    _statsmodels_installed: bool = True
+except ModuleNotFoundError:
+    _statsmodels_installed: bool = False
+
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from .covariance_of_correlation import covariance_of_correlation
 from .link_functions import BaseLinkFunction
@@ -15,13 +22,12 @@ def inference(
     alpha: np.ndarray,
     cov: np.ndarray,
     link_function: BaseLinkFunction,
-    p_adjust_method: Optional[str] = None,
+    p_adjust_method: str = "bonferroni",
     alternative: Literal["two-sided", "smaller", "larger"] = "two-sided",
     sig_level: float = 0.05,
     std_const: float = 1.0,
     known_alpha: Optional[np.ndarray] = None,
 ) -> Dict[str, np.ndarray]:
-
     alpha_sd = np.sqrt(np.diagonal(cov))
     critical_value = stats.norm.ppf(1 - sig_level / 2)
     # critical_value = stats.multivariate_normal.ppf(1 - sig_level / 2, cov=cov_to_corr(self.cov_))
@@ -46,14 +52,16 @@ def inference(
             f"got {alternative} instead"
         )
 
-    if p_adjust_method is not None:
-        from statsmodels.stats.multitest import multipletests
-
+    if p_adjust_method == "bonferroni":
+        result["p_vals_adjusted"] = result["p_vals"] / result["p_vals"].size
+    elif _statsmodels_installed:
         result["p_vals_adjusted"] = multipletests(
             pvals=result["p_vals"], method=p_adjust_method
         )[1]
     else:
-        result["p_vals_adjusted"] = np.full_like(result["p_vals"], np.nan)
+        raise ModuleNotFoundError(
+            "to use p_adjust_method different from 'bonferroni' please install statsmodels"
+        )
 
     if known_alpha is None:
         result["known_alpha"] = np.full_like(alpha, np.nan)
@@ -74,7 +82,6 @@ def wilks_test(
     dim_alpha: int = 1,
     non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> WilksTestResult:
-
     null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
     null_cov = covariance_of_correlation(null_mean, non_positive)
 

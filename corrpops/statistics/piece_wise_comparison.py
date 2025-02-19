@@ -3,6 +3,13 @@ from typing import Dict, Literal
 import numpy as np
 from scipy import stats
 
+try:
+    from statsmodels.stats.multitest import multipletests
+
+    _statsmodels_installed: bool = True
+except ModuleNotFoundError:
+    _statsmodels_installed: bool = False
+
 from linalg.triangle_vector import triangle_to_vector
 
 
@@ -48,12 +55,14 @@ def piece_wise_comparison(
             f"got {alternative} instead"
         )
 
-    if p_adjust_method is not None:
-        from statsmodels.stats.multitest import multipletests
-
-        p_vals_adjusted = multipletests(pvals=p_vals, method=p_adjust_method)
+    if p_adjust_method == "bonferroni":
+        p_vals_adjusted = p_vals / p_vals.size
+    elif _statsmodels_installed:
+        p_vals_adjusted = multipletests(pvals=p_vals, method=p_adjust_method)[1]
     else:
-        p_vals_adjusted = np.full_like(p_vals, np.nan)
+        raise ModuleNotFoundError(
+            "to use p_adjust_method different from 'bonferroni' please install statsmodels"
+        )
 
     return {
         "control_means": control_means,

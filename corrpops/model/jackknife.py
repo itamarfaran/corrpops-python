@@ -1,15 +1,14 @@
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
-from scipy import stats
 
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_vector import triangle_to_vector
 from .covariance_of_correlation import (
     average_covariance_of_correlation,
-    covariance_of_correlation,
 )
-from .estimator import CorrPopsEstimator, WilksTestResult
+from .estimator import CorrPopsEstimator
 from .gee_covariance import GeeCovarianceEstimator
+from .inference import inference, wilks_test, WilksTestResult
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
@@ -216,7 +215,6 @@ class CorrPopsJackknifeEstimator:
         self.gee_cov_ = aggregates["gee_cov"]
         return self
 
-    # todo: remove duplications ...
     def inference(
         self,
         p_adjust_method: Optional[str] = None,
@@ -224,94 +222,27 @@ class CorrPopsJackknifeEstimator:
         sig_level: float = 0.05,
         std_const: float = 1.0,
         known_alpha: Optional[np.ndarray] = None,
-    ):
-        alpha_sd = np.sqrt(np.diagonal(self.cov_))
-        critical_value = stats.norm.ppf(1 - sig_level / 2)
-        # critical_value = stats.multivariate_normal.ppf(1 - sig_level / 2, cov=cov_to_corr(self.cov_))
-
-        result = {
-            "estimate": self.alpha_,
-            "std": std_const * alpha_sd,
-            "z_value": (self.alpha_ - self.base_estimator.link_function.null_value)
-            / alpha_sd,
-            "ci_lower": self.alpha_ - critical_value * alpha_sd,
-            "ci_upper": self.alpha_ - critical_value * alpha_sd,
-        }
-
-        if alternative == "smaller":
-            result["p_vals"] = stats.norm.cdf(result["z_value"])
-        elif alternative == "larger":
-            result["p_vals"] = stats.norm.sf(result["z_value"])
-        elif alternative == "two-sided":
-            result["p_vals"] = 2 * stats.norm.sf(np.abs(result["z_value"]))
-        else:
-            raise ValueError(
-                f"alternative should be one of ['two-sided', 'smaller', 'larger'], "
-                f"got {alternative} instead"
-            )
-
-        if p_adjust_method is not None:
-            from statsmodels.stats.multitest import multipletests
-
-            result["p_vals_adjusted"] = multipletests(
-                pvals=result["p_vals"], method=p_adjust_method
-            )[1]
-        else:
-            result["p_vals_adjusted"] = np.full_like(result["p_vals"], np.nan)
-
-        if known_alpha is None:
-            result["known_alpha"] = np.full_like(self.alpha_, np.nan)
-        else:
-            result[
-                "known_alpha"
-            ] = self.base_estimator.link_function.transformer.inv_transform(
-                known_alpha.flatten()
-            )
-
-        return result
-
-    def score(self, control_arr, diagnosed_arr):
-        null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
-        null_cov = covariance_of_correlation(null_mean, self.non_positive)
-
-        g11 = self.base_estimator.link_function.func(
-            t=self.theta_,
-            a=self.alpha_,
-            d=self.base_estimator.optimizer.dim_alpha,
+    ) -> Dict[str, np.ndarray]:
+        return inference(
+            alpha=self.alpha_,
+            cov=self.cov_,
+            link_function=self.base_estimator.link_function,
+            p_adjust_method=p_adjust_method,
+            alternative=alternative,
+            sig_level=sig_level,
+            std_const=std_const,
+            known_alpha=known_alpha,
         )
 
-        control_arr = triangle_to_vector(control_arr)
-        diagnosed_arr = triangle_to_vector(diagnosed_arr)
-
-        full_log_likelihood = (
-            stats.multivariate_normal.logpdf(
-                x=control_arr,
-                mean=self.theta_,
-                cov=covariance_of_correlation(
-                    vector_to_triangle(self.theta_, diag_value=1),
-                    self.non_positive,
-                ),
-            ).sum()
-            + stats.multivariate_normal.logpdf(
-                x=diagnosed_arr,
-                mean=triangle_to_vector(g11),
-                cov=covariance_of_correlation(g11, self.non_positive),
-            ).sum()
+    def score(
+        self, control_arr: np.ndarray, diagnosed_arr: np.ndarray
+    ) -> WilksTestResult:
+        return wilks_test(
+            control_arr=control_arr,
+            diagnosed_arr=diagnosed_arr,
+            theta=self.theta_,
+            alpha=self.alpha_,
+            link_function=self.base_estimator.link_function,
+            dim_alpha=self.base_estimator.optimizer.dim_alpha,
+            non_positive=self.non_positive,
         )
-        null_log_likelihood = (
-            stats.multivariate_normal.logpdf(
-                x=control_arr,
-                mean=triangle_to_vector(null_mean),
-                cov=null_cov,
-            ).sum()
-            + stats.multivariate_normal.logpdf(
-                x=diagnosed_arr,
-                mean=triangle_to_vector(null_mean),
-                cov=null_cov,
-            ).sum()
-        )
-
-        chi2_val = 2 * (full_log_likelihood - null_log_likelihood)
-        df = np.size(self.alpha_)
-        p_val = stats.chi2.sf(chi2_val, df)
-        return WilksTestResult(chi2_val, df, p_val)

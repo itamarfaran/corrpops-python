@@ -16,6 +16,7 @@ from .covariance_of_correlation import average_covariance_of_correlation
 from .estimator import CorrPopsEstimator
 from .gee_covariance import GeeCovarianceEstimator
 from .inference import inference, wilks_test, WilksTestResult
+from .link_functions import BaseLinkFunction
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
@@ -23,6 +24,7 @@ JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",
     [
         "optimizer",
+        "link_function",
         "control_arr",
         "diagnosed_arr",
         "weights",
@@ -44,6 +46,7 @@ def _jackknife_single(
     index_to_drop: int,
     drop_in_diagnosed: bool,
     optimizer: CorrPopsOptimizer,
+    link_function: BaseLinkFunction,
     control_arr: np.ndarray,
     diagnosed_arr: np.ndarray,
     weights: np.ndarray,
@@ -64,6 +67,7 @@ def _jackknife_single(
     results = optimizer.optimize(
         control_arr=control_arr,
         diagnosed_arr=diagnosed_arr,
+        link_function=link_function,
         alpha0=alpha0,
         theta0=theta0,
         weights=weights,
@@ -72,6 +76,7 @@ def _jackknife_single(
         cov = gee_estimator.compute(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
+            link_function=link_function,
             optimizer_results=results,
             non_positive="ignore",
         )
@@ -190,6 +195,7 @@ class CorrPopsJackknifeEstimator:
     ) -> List[JackknifeResult]:
         args = JackknifeConstantArgs(
             optimizer=self.base_estimator.optimizer,
+            link_function=self.base_estimator.link_function,
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
             weights=weights,
@@ -227,6 +233,7 @@ class CorrPopsJackknifeEstimator:
         _jackknife_remote = ray.remote(_jackknife_single)
         args = JackknifeConstantArgs(
             optimizer=ray.put(self.base_estimator.optimizer),
+            link_function=ray.put(self.base_estimator.link_function),
             control_arr=ray.put(control_arr),
             diagnosed_arr=ray.put(diagnosed_arr),
             weights=ray.put(weights),

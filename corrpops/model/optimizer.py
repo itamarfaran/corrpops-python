@@ -56,9 +56,6 @@ def results_from_json(json_: Dict[str, Any]) -> CorrPopsOptimizerResults:
 class CorrPopsOptimizer:
     def __init__(
         self,
-        link_function: Optional[BaseLinkFunction] = None,
-        dim_alpha: int = 1,
-        # todo: should be attribute or in signature?
         *,
         rel_tol: float = 1e-06,
         abs_tol: float = 0.0,
@@ -72,8 +69,6 @@ class CorrPopsOptimizer:
         verbose: bool = True,
         save_optimize_results: bool = False,
     ):
-        self.link_function = link_function
-        self.dim_alpha = dim_alpha
         self.rel_tol = rel_tol
         self.abs_tol = abs_tol
         self.abs_p = abs_p
@@ -91,18 +86,22 @@ class CorrPopsOptimizer:
             self.minimize_kwargs["options"] = {}
         self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
 
-    def _check_positive_definite(self, theta: np.ndarray, alpha: np.ndarray):
+    @staticmethod
+    def _check_positive_definite(
+        theta: np.ndarray,
+        alpha: np.ndarray,
+        link_function: BaseLinkFunction,
+        dim_alpha: int,
+    ):
         is_positive_definite_ = (
             is_positive_definite(vector_to_triangle(theta, diag_value=1)),
-            is_positive_definite(self.link_function.func(theta, alpha, self.dim_alpha)),
+            is_positive_definite(link_function.func(theta, alpha, dim_alpha)),
         )
         if not all(is_positive_definite_):
             warnings.warn("initial parameters dont yield positive-definite matrices")
 
     def get_params(self):
         return {
-            "link_function": self.link_function.name,
-            "dim_alpha": self.dim_alpha,
             "rel_tol": self.rel_tol,
             "abs_tol": self.abs_tol,
             "abs_p": self.abs_p,
@@ -128,6 +127,8 @@ class CorrPopsOptimizer:
         alpha: np.ndarray,
         diagnosed_arr: np.ndarray,
         inv_cov: np.ndarray,
+        link_function: BaseLinkFunction,
+        dim_alpha: int,
         status: int,
         optimize_results: Optional[Dict[str, Any]] = None,
     ):
@@ -145,8 +146,8 @@ class CorrPopsOptimizer:
                 alpha=alpha,
                 diagnosed_arr=diagnosed_arr,
                 inv_sigma=inv_cov,
-                link_function=self.link_function,
-                dim_alpha=self.dim_alpha,
+                link_function=link_function,
+                dim_alpha=dim_alpha,
                 reg_lambda=self.reg_lambda,
                 reg_p=self.reg_p,
             ),
@@ -159,6 +160,8 @@ class CorrPopsOptimizer:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
+        link_function: BaseLinkFunction,
+        dim_alpha: int = 1,
         alpha0: Optional[np.ndarray] = None,
         theta0: Optional[np.ndarray] = None,
         weights: Optional[np.ndarray] = None,
@@ -174,7 +177,7 @@ class CorrPopsOptimizer:
             )
 
         if alpha0 is None:
-            alpha = np.full((p, self.dim_alpha), self.link_function.null_value)
+            alpha = np.full((p, dim_alpha), link_function.null_value)
         else:
             alpha = alpha0
 
@@ -183,13 +186,13 @@ class CorrPopsOptimizer:
                 alpha=alpha,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
-                link_function=self.link_function,
-                dim_alpha=self.dim_alpha,
+                link_function=link_function,
+                dim_alpha=dim_alpha,
             )
         else:
             theta = theta0
 
-        self._check_positive_definite(theta, alpha)
+        self._check_positive_definite(theta, alpha, link_function, dim_alpha)
         if weights is not None:
             inv_cov = linalg.inv(weights)
         else:
@@ -202,6 +205,8 @@ class CorrPopsOptimizer:
             alpha=alpha,
             diagnosed_arr=diagnosed_arr,
             inv_cov=inv_cov,
+            link_function=link_function,
+            dim_alpha=dim_alpha,
             status=-1,
             optimize_results={},
         )
@@ -227,8 +232,8 @@ class CorrPopsOptimizer:
                 alpha=alpha,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
-                link_function=self.link_function,
-                dim_alpha=self.dim_alpha,
+                link_function=link_function,
+                dim_alpha=dim_alpha,
             )
 
             optimize_results = optimize.minimize(
@@ -236,9 +241,9 @@ class CorrPopsOptimizer:
                     sum_of_squares,
                     theta=theta,
                     diagnosed_arr=diagnosed_arr,
-                    link_function=self.link_function,
+                    link_function=link_function,
                     inv_sigma=inv_cov,
-                    dim_alpha=self.dim_alpha,
+                    dim_alpha=dim_alpha,
                     reg_lambda=self.reg_lambda,
                     reg_p=self.reg_p,
                 ),
@@ -252,6 +257,8 @@ class CorrPopsOptimizer:
                 alpha=alpha,
                 diagnosed_arr=diagnosed_arr,
                 inv_cov=inv_cov,
+                link_function=link_function,
+                dim_alpha=dim_alpha,
                 status=optimize_results.status,
                 optimize_results=optimize_results,
             )
@@ -307,9 +314,9 @@ class CorrPopsOptimizer:
             "theta": theta,
             "alpha": alpha,
             "inv_cov": inv_cov,
+            "link_function": link_function.name,
             "p": p,
+            "dim_alpha": dim_alpha,
             "steps": steps,
-            "dim_alpha": self.dim_alpha,
-            "link_function": self.link_function.name,
         }
         return results

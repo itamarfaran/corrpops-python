@@ -1,4 +1,4 @@
-from typing import Callable, Literal, TypedDict, Optional
+from typing import Callable, Literal, TypedDict
 
 import numpy as np
 
@@ -22,14 +22,12 @@ class GeeProperties(TypedDict):
 class GeeCovarianceEstimator:
     def __init__(
         self,
-        link_function: Optional[BaseLinkFunction] = None,
         *,
         est_mu: bool = True,
         jacobian_method: Literal["simple", "richardson"] = "richardson",
         sample_size: Literal["estimated", "naive"] = "estimated",
         df_method: Literal["naive", "efron"] = "naive",
     ):
-        self.link_function = link_function
         self.est_mu = est_mu
         self.jacobian_method = jacobian_method
         self.sample_size = sample_size
@@ -37,7 +35,6 @@ class GeeCovarianceEstimator:
 
     def get_params(self):
         return {
-            "link_function": self.link_function.name,
             "est_mu": self.est_mu,
             "jacobian_method": self.jacobian_method,
             "sample_size": self.sample_size,
@@ -91,6 +88,7 @@ class GeeCovarianceEstimator:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
+        link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
     ):
@@ -99,7 +97,7 @@ class GeeCovarianceEstimator:
                 alpha=a,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
-                link_function=self.link_function,
+                link_function=link_function,
                 dim_alpha=optimizer_results["dim_alpha"],
             )
 
@@ -119,6 +117,7 @@ class GeeCovarianceEstimator:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
+        link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
     ):
@@ -127,16 +126,16 @@ class GeeCovarianceEstimator:
                 alpha=a,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
-                link_function=self.link_function,
+                link_function=link_function,
                 dim_alpha=optimizer_results["dim_alpha"],
             )
             return triangle_to_vector(
-                self.link_function.func(t=theta, a=a, d=optimizer_results["dim_alpha"])
+                link_function.func(t=theta, a=a, d=optimizer_results["dim_alpha"])
             )
 
         expected_value = (
             triangle_to_vector(
-                self.link_function.func(
+                link_function.func(
                     t=optimizer_results["theta"],
                     a=optimizer_results["alpha"],
                     d=optimizer_results["dim_alpha"],
@@ -177,20 +176,23 @@ class GeeCovarianceEstimator:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
+        link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
-        self.link_function.check_name_equal(optimizer_results["link_function"])
+        link_function.check_name_equal(optimizer_results["link_function"])
 
         control_properties = self.create_control_properties(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
+            link_function=link_function,
             optimizer_results=optimizer_results,
             non_positive=non_positive,
         )
         diagnosed_properties = self.create_diagnosed_properties(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
+            link_function=link_function,
             optimizer_results=optimizer_results,
             non_positive=non_positive,
         )

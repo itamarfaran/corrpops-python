@@ -27,15 +27,13 @@ class CorrPopsEstimator:
         naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
-        self.optimizer = optimizer.set_params(
-            link_function=link_function, dim_alpha=dim_alpha
-        )
-        self.gee_estimator = gee_estimator.set_params(link_function=link_function)
+        self.link_function = link_function
+        self.dim_alpha = dim_alpha
+        self.optimizer = optimizer
+        self.gee_estimator = gee_estimator
 
         if isinstance(naive_optimizer, CorrPopsOptimizer):
-            self.naive_optimizer = naive_optimizer.set_params(
-                link_function=link_function, dim_alpha=dim_alpha
-            )
+            self.naive_optimizer = naive_optimizer
         elif naive_optimizer:
             self.naive_optimizer = copy.deepcopy(self.optimizer)
         else:
@@ -50,14 +48,6 @@ class CorrPopsEstimator:
         self.optimizer_results_: Optional[CorrPopsOptimizerResults] = None
         self.naive_optimizer_results_: Optional[CorrPopsOptimizerResults] = None
 
-    @property
-    def link_function(self):
-        return self.optimizer.link_function
-
-    @property
-    def dim_alpha(self):
-        return self.optimizer.dim_alpha
-
     @classmethod
     def from_json(
         cls,
@@ -66,9 +56,6 @@ class CorrPopsEstimator:
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if "params" in json_:
-            link_function.check_name_equal(
-                json_["params"]["optimizer"]["link_function"]
-            )
             estimator = cls(
                 link_function=link_function,
                 optimizer=CorrPopsOptimizer(**json_["params"]["optimizer"]),
@@ -158,6 +145,8 @@ class CorrPopsEstimator:
             naive_optimizer_results = self.naive_optimizer.optimize(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
+                link_function=self.link_function,
+                dim_alpha=self.dim_alpha,
             )
             alpha0 = naive_optimizer_results["alpha"]
             theta0 = naive_optimizer_results["theta"]
@@ -165,6 +154,8 @@ class CorrPopsEstimator:
         self.optimizer_results_ = self.optimizer.optimize(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
+            link_function=self.link_function,
+            dim_alpha=self.dim_alpha,
             alpha0=alpha0,
             theta0=theta0,
             weights=weight_matrix,
@@ -184,6 +175,7 @@ class CorrPopsEstimator:
             self.cov_ = self.gee_estimator.compute(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
+                link_function=self.link_function,
                 optimizer_results=self.optimizer_results_,
                 non_positive=self.non_positive,
             )
@@ -191,6 +183,7 @@ class CorrPopsEstimator:
             self.cov_ = self.gee_estimator.compute(
                 control_arr=triangle_to_vector(control_arr),
                 diagnosed_arr=triangle_to_vector(diagnosed_arr),
+                link_function=self.link_function,
                 optimizer_results=self.optimizer_results_,
                 non_positive=self.non_positive,
             )

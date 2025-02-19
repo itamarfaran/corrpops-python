@@ -172,6 +172,7 @@ class GeeCovarianceEstimator:
             @ properties["jacobian"]
         )
 
+    # todo: debug!
     def compute(
         self,
         control_arr: np.ndarray,

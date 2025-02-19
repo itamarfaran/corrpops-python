@@ -20,18 +20,21 @@ class CorrPopsEstimator:
     def __init__(
         self,
         link_function: BaseLinkFunction = MultiplicativeIdentity(),
+        dim_alpha: int = 1,
         *,
         optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
         gee_estimator: GeeCovarianceEstimator = GeeCovarianceEstimator(),
         naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
-        self.optimizer = optimizer.set_params(link_function=link_function)
+        self.optimizer = optimizer.set_params(
+            link_function=link_function, dim_alpha=dim_alpha
+        )
         self.gee_estimator = gee_estimator.set_params(link_function=link_function)
 
         if isinstance(naive_optimizer, CorrPopsOptimizer):
             self.naive_optimizer = naive_optimizer.set_params(
-                link_function=link_function
+                link_function=link_function, dim_alpha=dim_alpha
             )
         elif naive_optimizer:
             self.naive_optimizer = copy.deepcopy(self.optimizer)
@@ -50,6 +53,10 @@ class CorrPopsEstimator:
     @property
     def link_function(self):
         return self.optimizer.link_function
+
+    @property
+    def dim_alpha(self):
+        return self.optimizer.dim_alpha
 
     @classmethod
     def from_json(
@@ -217,6 +224,6 @@ class CorrPopsEstimator:
             theta=self.theta_,
             alpha=self.alpha_,
             link_function=self.link_function,
-            dim_alpha=self.optimizer.dim_alpha,
+            dim_alpha=self.dim_alpha,
             non_positive=self.non_positive,
         )

@@ -277,6 +277,6 @@ class CorrPopsJackknifeEstimator:
             theta=self.theta_,
             alpha=self.alpha_,
             link_function=self.base_estimator.link_function,
-            dim_alpha=self.base_estimator.optimizer.dim_alpha,
+            dim_alpha=self.base_estimator.dim_alpha,
             non_positive=self.non_positive,
         )

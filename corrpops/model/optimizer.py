@@ -57,8 +57,9 @@ class CorrPopsOptimizer:
     def __init__(
         self,
         link_function: Optional[BaseLinkFunction] = None,
-        *,
         dim_alpha: int = 1,
+        # todo: should be attribute or in signature?
+        *,
         rel_tol: float = 1e-06,
         abs_tol: float = 0.0,
         abs_p: float = 2.0,

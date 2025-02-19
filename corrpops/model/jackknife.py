@@ -3,6 +3,14 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 
+try:
+    import ray
+
+    _ray_installed: bool = True
+except ModuleNotFoundError:
+    _ray_installed: bool = False
+
+
 from linalg.triangle_vector import triangle_to_vector
 from .covariance_of_correlation import average_covariance_of_correlation
 from .estimator import CorrPopsEstimator
@@ -68,11 +76,13 @@ class CorrPopsJackknifeEstimator:
         base_estimator: CorrPopsEstimator,
         jack_control: bool = True,
         steps_back: int = 3,
+        use_ray: bool = False,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         self.base_estimator = base_estimator
         self.jack_control = jack_control
         self.steps_back = steps_back
+        self.use_ray = use_ray
         self.non_positive = non_positive
         self.is_fitted = False
 
@@ -162,22 +172,27 @@ class CorrPopsJackknifeEstimator:
         weights: np.ndarray,
         compute_cov: bool,
     ) -> List[Dict[str, np.ndarray]]:
-        partial_jackknife = partial(
-            _jackknife,
-            optimizer=self.base_estimator.optimizer,
-            control_arr=control_arr,
-            diagnosed_arr=diagnosed_arr,
-            alpha0=alpha0,
-            theta0=theta0,
-            weights=weights,
-            gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
-        )
+        def _partial_jackknife(
+            index: Union[int, Tuple[int, ...]],
+            jack_diagnosed: bool,
+        ):
+            return _jackknife(
+                index=index,
+                jack_diagnosed=jack_diagnosed,
+                optimizer=self.base_estimator.optimizer,
+                control_arr=control_arr,
+                diagnosed_arr=diagnosed_arr,
+                alpha0=alpha0,
+                theta0=theta0,
+                weights=weights,
+                gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+            )
         results = [
-            partial_jackknife(index, True) for index in range(diagnosed_arr.shape[0])
+            _partial_jackknife(index, True) for index in range(diagnosed_arr.shape[0])
         ]
         if self.jack_control:
             results += [
-                partial_jackknife(index, False) for index in range(control_arr.shape[0])
+                _partial_jackknife(index, False) for index in range(control_arr.shape[0])
             ]
         return results
 
@@ -190,8 +205,39 @@ class CorrPopsJackknifeEstimator:
         weights: np.ndarray,
         compute_cov: bool,
     ) -> List[Dict[str, np.ndarray]]:
-        # todo: add ray
-        raise NotImplementedError
+        if not _ray_installed:
+            raise ModuleNotFoundError(
+                "missing optional dependency ray. "
+                "use_ray=True is not supported. "
+                "for multiprocessing install ray."
+            )
+
+        @ray.remote
+        def _partial_jackknife(
+            index: Union[int, Tuple[int, ...]],
+            jack_diagnosed: bool,
+        ):
+            return _jackknife(
+                index=index,
+                jack_diagnosed=jack_diagnosed,
+                optimizer=self.base_estimator.optimizer,
+                control_arr=control_arr,
+                diagnosed_arr=diagnosed_arr,
+                alpha0=alpha0,
+                theta0=theta0,
+                weights=weights,
+                gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+            )
+
+        futures = [
+            _partial_jackknife.remote(index, True) for index in range(diagnosed_arr.shape[0])
+        ]
+        if self.jack_control:
+            futures += [
+                _partial_jackknife.remote(index, False) for index in range(control_arr.shape[0])
+            ]
+        results = ray.get(futures)
+        return results
 
     def fit(
         self,
@@ -219,7 +265,10 @@ class CorrPopsJackknifeEstimator:
             diagnosed_arr,
             non_positive=self.non_positive,
         )
-        results = self.get_jackknife(
+
+        get_jackknife = self.get_jackknife_ray if self.use_ray else self.get_jackknife
+
+        results = get_jackknife(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
             alpha0=alpha0,

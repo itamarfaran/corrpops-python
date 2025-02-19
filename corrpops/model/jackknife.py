@@ -1,5 +1,4 @@
-from functools import partial
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict
 
 import numpy as np
 
@@ -11,7 +10,7 @@ except ModuleNotFoundError:
     _ray_installed: bool = False
 
 
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from .covariance_of_correlation import average_covariance_of_correlation
 from .estimator import CorrPopsEstimator
 from .gee_covariance import GeeCovarianceEstimator
@@ -19,32 +18,27 @@ from .inference import inference, wilks_test, WilksTestResult
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
-def _jackknife(
-    index: Union[int, Tuple[int, ...]],
-    jack_diagnosed: bool,
-    optimizer: CorrPopsOptimizer,
+class JackknifeResult(TypedDict):
+    theta: np.ndarray
+    alpha: np.ndarray
+    status: int
+    cov: Optional[np.ndarray]
+
+
+def _jackknife_single(
     control_arr: np.ndarray,
     diagnosed_arr: np.ndarray,
+    weights: Optional[np.ndarray],
+    optimizer: CorrPopsOptimizer,
     alpha0: np.ndarray,
     theta0: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    gee_estimator: Optional[GeeCovarianceEstimator] = None,
-):
-    # todo: perhaps the deletion should happen outside of this function?
-    if jack_diagnosed:
-        diagnosed_arr = np.delete(diagnosed_arr, index, axis=0)
-    else:
-        control_arr = np.delete(control_arr, index, axis=0)
-
-    if jack_diagnosed or weights is None:
+    gee_estimator: Optional[GeeCovarianceEstimator],
+) -> JackknifeResult:
+    if weights is None:
         weights, _ = average_covariance_of_correlation(
-            diagnosed_arr,
+            vector_to_triangle(diagnosed_arr, diag_value=1),
             non_positive="ignore",
         )
-
-    control_arr = triangle_to_vector(control_arr)
-    diagnosed_arr = triangle_to_vector(diagnosed_arr)
-
     results = optimizer.optimize(
         control_arr=control_arr,
         diagnosed_arr=diagnosed_arr,
@@ -119,7 +113,7 @@ class CorrPopsJackknifeEstimator:
         diagnosed_index: np.ndarray,
         theta_stack: Optional[np.ndarray] = None,
         gee_cov_stack: Optional[np.ndarray] = None,
-    ):
+    ) -> Dict[str, Optional[np.ndarray]]:
         diagnosed_n = len(diagnosed_index)
         diagnosed_constant = (diagnosed_n - 1) ** 2 / diagnosed_n
         # diagnosed_mean = alpha_stack[diagnosed_index].mean(0)
@@ -169,31 +163,38 @@ class CorrPopsJackknifeEstimator:
         diagnosed_arr: np.ndarray,
         alpha0: np.ndarray,
         theta0: np.ndarray,
-        weights: np.ndarray,
+        weights: Optional[np.ndarray],
         compute_cov: bool,
-    ) -> List[Dict[str, np.ndarray]]:
-        def _partial_jackknife(
-            index: Union[int, Tuple[int, ...]],
-            jack_diagnosed: bool,
-        ):
-            return _jackknife(
-                index=index,
-                jack_diagnosed=jack_diagnosed,
+    ) -> List[JackknifeResult]:
+        def _partial_jackknife(*args) -> JackknifeResult:
+            return _jackknife_single(
+                *args,
                 optimizer=self.base_estimator.optimizer,
-                control_arr=control_arr,
-                diagnosed_arr=diagnosed_arr,
                 alpha0=alpha0,
                 theta0=theta0,
-                weights=weights,
-                gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+                gee_estimator=self.base_estimator.gee_estimator
+                if compute_cov
+                else None,
             )
-        results = [
-            _partial_jackknife(index, True) for index in range(diagnosed_arr.shape[0])
-        ]
+
+        results = []
+        for index in range(diagnosed_arr.shape[0]):
+            results.append(
+                _partial_jackknife(
+                    control_arr,
+                    np.delete(diagnosed_arr, index, axis=0),
+                    None,
+                )
+            )
         if self.jack_control:
-            results += [
-                _partial_jackknife(index, False) for index in range(control_arr.shape[0])
-            ]
+            for index in range(control_arr.shape[0]):
+                results.append(
+                    _partial_jackknife(
+                        np.delete(control_arr, index, axis=0),
+                        diagnosed_arr,
+                        weights,
+                    )
+                )
         return results
 
     def get_jackknife_ray(
@@ -204,7 +205,7 @@ class CorrPopsJackknifeEstimator:
         theta0: np.ndarray,
         weights: np.ndarray,
         compute_cov: bool,
-    ) -> List[Dict[str, np.ndarray]]:
+    ) -> List[JackknifeResult]:
         if not _ray_installed:
             raise ModuleNotFoundError(
                 "missing optional dependency ray. "
@@ -213,29 +214,35 @@ class CorrPopsJackknifeEstimator:
             )
 
         @ray.remote
-        def _partial_jackknife(
-            index: Union[int, Tuple[int, ...]],
-            jack_diagnosed: bool,
-        ):
-            return _jackknife(
-                index=index,
-                jack_diagnosed=jack_diagnosed,
+        def _partial_jackknife(*args) -> JackknifeResult:
+            return _jackknife_single(
+                *args,
                 optimizer=self.base_estimator.optimizer,
-                control_arr=control_arr,
-                diagnosed_arr=diagnosed_arr,
                 alpha0=alpha0,
                 theta0=theta0,
-                weights=weights,
-                gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+                gee_estimator=self.base_estimator.gee_estimator
+                if compute_cov
+                else None,
             )
 
-        futures = [
-            _partial_jackknife.remote(index, True) for index in range(diagnosed_arr.shape[0])
-        ]
+        futures = []
+        for index in range(diagnosed_arr.shape[0]):
+            futures.append(
+                _partial_jackknife.remote(
+                    control_arr,
+                    np.delete(diagnosed_arr, index, axis=0),
+                    None,
+                )
+            )
         if self.jack_control:
-            futures += [
-                _partial_jackknife.remote(index, False) for index in range(control_arr.shape[0])
-            ]
+            for index in range(control_arr.shape[0]):
+                futures.append(
+                    _partial_jackknife.remote(
+                        np.delete(control_arr, index, axis=0),
+                        diagnosed_arr,
+                        weights,
+                    )
+                )
         results = ray.get(futures)
         return results
 
@@ -266,11 +273,9 @@ class CorrPopsJackknifeEstimator:
             non_positive=self.non_positive,
         )
 
-        get_jackknife = self.get_jackknife_ray if self.use_ray else self.get_jackknife
-
-        results = get_jackknife(
-            control_arr=control_arr,
-            diagnosed_arr=diagnosed_arr,
+        results = (self.get_jackknife_ray if self.use_ray else self.get_jackknife)(
+            control_arr=triangle_to_vector(control_arr),
+            diagnosed_arr=triangle_to_vector(diagnosed_arr),
             alpha0=alpha0,
             theta0=theta0,
             weights=weight_matrix,

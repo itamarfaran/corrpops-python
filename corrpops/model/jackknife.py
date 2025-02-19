@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict
 
 import numpy as np
@@ -18,6 +19,20 @@ from .inference import inference, wilks_test, WilksTestResult
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
+JackknifeConstantArgs = namedtuple(
+    "JackknifeConstantArgs",
+    [
+        "optimizer",
+        "control_arr",
+        "diagnosed_arr",
+        "weights",
+        "alpha0",
+        "theta0",
+        "gee_estimator",
+    ],
+)
+
+
 class JackknifeResult(TypedDict):
     theta: np.ndarray
     alpha: np.ndarray
@@ -26,19 +41,26 @@ class JackknifeResult(TypedDict):
 
 
 def _jackknife_single(
+    index_to_drop: int,
+    drop_in_diagnosed: bool,
+    optimizer: CorrPopsOptimizer,
     control_arr: np.ndarray,
     diagnosed_arr: np.ndarray,
-    weights: Optional[np.ndarray],
-    optimizer: CorrPopsOptimizer,
+    weights: np.ndarray,
     alpha0: np.ndarray,
     theta0: np.ndarray,
     gee_estimator: Optional[GeeCovarianceEstimator],
 ) -> JackknifeResult:
-    if weights is None:
+    if drop_in_diagnosed:
+        diagnosed_arr = np.delete(diagnosed_arr, index_to_drop, axis=0)
         weights, _ = average_covariance_of_correlation(
             vector_to_triangle(diagnosed_arr, diag_value=1),
             non_positive="ignore",
+            # maybe we can avoid this and use the general weights?
         )
+    else:
+        control_arr = np.delete(control_arr, index_to_drop, axis=0)
+
     results = optimizer.optimize(
         control_arr=control_arr,
         diagnosed_arr=diagnosed_arr,
@@ -163,38 +185,27 @@ class CorrPopsJackknifeEstimator:
         diagnosed_arr: np.ndarray,
         alpha0: np.ndarray,
         theta0: np.ndarray,
-        weights: Optional[np.ndarray],
+        weights: np.ndarray,
         compute_cov: bool,
     ) -> List[JackknifeResult]:
-        def _partial_jackknife(*args) -> JackknifeResult:
-            return _jackknife_single(
-                *args,
-                optimizer=self.base_estimator.optimizer,
-                alpha0=alpha0,
-                theta0=theta0,
-                gee_estimator=self.base_estimator.gee_estimator
-                if compute_cov
-                else None,
-            )
+        args = JackknifeConstantArgs(
+            optimizer=self.base_estimator.optimizer,
+            control_arr=control_arr,
+            diagnosed_arr=diagnosed_arr,
+            weights=weights,
+            alpha0=alpha0,
+            theta0=theta0,
+            gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+        )
 
         results = []
         for index in range(diagnosed_arr.shape[0]):
-            results.append(
-                _partial_jackknife(
-                    control_arr,
-                    np.delete(diagnosed_arr, index, axis=0),
-                    None,
-                )
-            )
+            current = _jackknife_single(index, True, *args)
+            results.append(current)
         if self.jack_control:
             for index in range(control_arr.shape[0]):
-                results.append(
-                    _partial_jackknife(
-                        np.delete(control_arr, index, axis=0),
-                        diagnosed_arr,
-                        weights,
-                    )
-                )
+                current = _jackknife_single(index, False, *args)
+                results.append(current)
         return results
 
     def get_jackknife_ray(
@@ -213,36 +224,27 @@ class CorrPopsJackknifeEstimator:
                 "for multiprocessing install ray."
             )
 
-        @ray.remote
-        def _partial_jackknife(*args) -> JackknifeResult:
-            return _jackknife_single(
-                *args,
-                optimizer=self.base_estimator.optimizer,
-                alpha0=alpha0,
-                theta0=theta0,
-                gee_estimator=self.base_estimator.gee_estimator
-                if compute_cov
-                else None,
-            )
+        _jackknife_remote = ray.remote(_jackknife_single)
+        args = JackknifeConstantArgs(
+            optimizer=ray.put(self.base_estimator.optimizer),
+            control_arr=ray.put(control_arr),
+            diagnosed_arr=ray.put(diagnosed_arr),
+            weights=ray.put(weights),
+            alpha0=ray.put(alpha0),
+            theta0=ray.put(theta0),
+            gee_estimator=ray.put(self.base_estimator.gee_estimator)
+            if compute_cov
+            else None,
+        )
 
         futures = []
         for index in range(diagnosed_arr.shape[0]):
-            futures.append(
-                _partial_jackknife.remote(
-                    control_arr,
-                    np.delete(diagnosed_arr, index, axis=0),
-                    None,
-                )
-            )
+            run_id = _jackknife_remote.remote(index, True, *args)
+            futures.append(run_id)
         if self.jack_control:
             for index in range(control_arr.shape[0]):
-                futures.append(
-                    _partial_jackknife.remote(
-                        np.delete(control_arr, index, axis=0),
-                        diagnosed_arr,
-                        weights,
-                    )
-                )
+                run_id = _jackknife_remote.remote(index, False, *args)
+                futures.append(run_id)
         results = ray.get(futures)
         return results
 

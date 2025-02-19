@@ -1,29 +1,28 @@
+from functools import partial
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 
 from linalg.triangle_vector import triangle_to_vector
-from .covariance_of_correlation import (
-    average_covariance_of_correlation,
-)
+from .covariance_of_correlation import average_covariance_of_correlation
 from .estimator import CorrPopsEstimator
 from .gee_covariance import GeeCovarianceEstimator
 from .inference import inference, wilks_test, WilksTestResult
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
-# todo: add ray
-def jackknife(
+def _jackknife(
     index: Union[int, Tuple[int, ...]],
+    jack_diagnosed: bool,
     optimizer: CorrPopsOptimizer,
     control_arr: np.ndarray,
     diagnosed_arr: np.ndarray,
     alpha0: np.ndarray,
     theta0: np.ndarray,
-    jack_diagnosed: bool = True,
     weights: Optional[np.ndarray] = None,
     gee_estimator: Optional[GeeCovarianceEstimator] = None,
 ):
+    # todo: perhaps the deletion should happen outside of this function?
     if jack_diagnosed:
         diagnosed_arr = np.delete(diagnosed_arr, index, axis=0)
     else:
@@ -141,6 +140,59 @@ class CorrPopsJackknifeEstimator:
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
         raise NotImplementedError
 
+    def set_indices(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+    ):
+        self.diagnosed_index_ = np.arange(diagnosed_arr.shape[0])
+        if self.jack_control:
+            self.control_index_ = self.diagnosed_index_.size + np.arange(
+                control_arr.shape[0]
+            )
+        else:
+            self.control_index_ = np.array([])
+
+    def get_jackknife(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+        alpha0: np.ndarray,
+        theta0: np.ndarray,
+        weights: np.ndarray,
+        compute_cov: bool,
+    ) -> List[Dict[str, np.ndarray]]:
+        partial_jackknife = partial(
+            _jackknife,
+            optimizer=self.base_estimator.optimizer,
+            control_arr=control_arr,
+            diagnosed_arr=diagnosed_arr,
+            alpha0=alpha0,
+            theta0=theta0,
+            weights=weights,
+            gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+        )
+        results = [
+            partial_jackknife(index, True) for index in range(diagnosed_arr.shape[0])
+        ]
+        if self.jack_control:
+            results += [
+                partial_jackknife(index, False) for index in range(control_arr.shape[0])
+            ]
+        return results
+
+    def get_jackknife_ray(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+        alpha0: np.ndarray,
+        theta0: np.ndarray,
+        weights: np.ndarray,
+        compute_cov: bool,
+    ) -> List[Dict[str, np.ndarray]]:
+        # todo: add ray
+        raise NotImplementedError
+
     def fit(
         self,
         control_arr: np.ndarray,
@@ -149,9 +201,6 @@ class CorrPopsJackknifeEstimator:
         compute_cov: bool = False,
         optimizer_results: Optional[CorrPopsOptimizerResults] = None,
     ):
-        self.control_index_ = []
-        self.diagnosed_index_ = []
-
         if optimizer_results is None:
             self.base_estimator.fit(
                 control_arr=control_arr,
@@ -170,30 +219,15 @@ class CorrPopsJackknifeEstimator:
             diagnosed_arr,
             non_positive=self.non_positive,
         )
-
-        jackknife_kwargs = {
-            "optimizer": self.base_estimator.optimizer,
-            "control_arr": control_arr,
-            "diagnosed_arr": diagnosed_arr,
-            "alpha0": alpha0,
-            "theta0": theta0,
-            "gee_estimator": self.base_estimator.gee_estimator if compute_cov else None,
-        }
-
-        results = [
-            jackknife(index=index, jack_diagnosed=True, **jackknife_kwargs)
-            for index in range(diagnosed_arr.shape[0])
-        ]
-        self.diagnosed_index_ = np.arange(diagnosed_arr.shape[0])
-
-        if self.jack_control:
-            results += [
-                jackknife(index=index, jack_diagnosed=False, **jackknife_kwargs)
-                for index in range(control_arr.shape[0])
-            ]
-            self.control_index_ = self.diagnosed_index_.size + np.arange(
-                control_arr.shape[0]
-            )
+        results = self.get_jackknife(
+            control_arr=control_arr,
+            diagnosed_arr=diagnosed_arr,
+            alpha0=alpha0,
+            theta0=theta0,
+            weights=weight_matrix,
+            compute_cov=compute_cov,
+        )
+        self.set_indices(control_arr=control_arr, diagnosed_arr=diagnosed_arr)
 
         self.alpha_stack_ = self.stack_if_not_none(results, "alpha", alpha0.shape)
         self.theta_stack_ = self.stack_if_not_none(results, "theta", theta0.shape)

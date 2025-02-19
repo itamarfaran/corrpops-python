@@ -16,29 +16,64 @@ from .optimizer import (
 )
 
 
+_init_value_error_msg = (
+    "cannot pass both an instantiated {0} and non-empty {0}_kwargs. "
+    "either pass an instantiated {0} with non-default attributes "
+    "or pass non-empty {0}_kwargs to modify a new {1} "
+    "instantiated in CorrPopsEstimator.__init__."
+)
+
+
 class CorrPopsEstimator:
     def __init__(
         self,
         link_function: BaseLinkFunction = MultiplicativeIdentity(),
         dim_alpha: int = 1,
         *,
-        optimizer: CorrPopsOptimizer = CorrPopsOptimizer(),
-        gee_estimator: GeeCovarianceEstimator = GeeCovarianceEstimator(),
-        naive_optimizer: Union[CorrPopsOptimizer, bool] = True,
+        optimizer: Optional[CorrPopsOptimizer] = None,
+        naive_optimizer: Union[CorrPopsOptimizer, Literal["skip"], None] = None,
+        gee_estimator: Optional[GeeCovarianceEstimator] = None,
+        optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        naive_optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        gee_estimator_kwargs: Optional[Dict[str, Any]] = None,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
+        if optimizer is None:
+            optimizer_kwargs = optimizer_kwargs or {}
+            self.optimizer = CorrPopsOptimizer(**optimizer_kwargs)
+        elif optimizer_kwargs:
+            raise ValueError(
+                _init_value_error_msg.format("optimizer", "CorrPopsOptimizer")
+            )
+        else:
+            self.optimizer = optimizer
+
+        if naive_optimizer is None:
+            naive_optimizer_kwargs = naive_optimizer_kwargs or {}
+            self.naive_optimizer = copy.deepcopy(self.optimizer).set_params(
+                **naive_optimizer_kwargs
+            )
+        elif naive_optimizer == "skip":
+            self.naive_optimizer = None
+        elif naive_optimizer_kwargs:
+            raise ValueError(
+                _init_value_error_msg.format("naive_optimizer", "CorrPopsOptimizer")
+            )
+        else:
+            self.naive_optimizer = naive_optimizer
+
+        if gee_estimator is None:
+            gee_estimator_kwargs = gee_estimator_kwargs or {}
+            self.gee_estimator = GeeCovarianceEstimator(**gee_estimator_kwargs)
+        elif gee_estimator_kwargs:
+            raise ValueError(
+                _init_value_error_msg.format("gee_estimator", "GeeCovarianceEstimator")
+            )
+        else:
+            self.gee_estimator = gee_estimator
+
         self.link_function = link_function
         self.dim_alpha = dim_alpha
-        self.optimizer = optimizer
-        self.gee_estimator = gee_estimator
-
-        if isinstance(naive_optimizer, CorrPopsOptimizer):
-            self.naive_optimizer = naive_optimizer
-        elif naive_optimizer:
-            self.naive_optimizer = copy.deepcopy(self.optimizer)
-        else:
-            self.naive_optimizer = None
-
         self.non_positive = non_positive
         self.is_fitted = False
 
@@ -131,6 +166,7 @@ class CorrPopsEstimator:
         diagnosed_arr: np.ndarray,
         compute_cov: bool = True,
     ):
+        # todo: add logging
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,

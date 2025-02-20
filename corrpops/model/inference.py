@@ -65,9 +65,7 @@ def inference(
             "for other methods please install statsmodels."
         )
 
-    if known_alpha is None:
-        result["known_alpha"] = np.full_like(alpha, np.nan)
-    else:
+    if known_alpha is not None:
         result["known_alpha"] = link_function.transformer.inv_transform(
             known_alpha.flatten()
         )
@@ -86,7 +84,6 @@ def wilks_test(
 ) -> WilksTestResult:
     null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
     null_cov = covariance_of_correlation(null_mean, non_positive)
-
     g11 = link_function.func(
         t=theta,
         a=alpha,
@@ -96,36 +93,42 @@ def wilks_test(
     control_arr = triangle_to_vector(control_arr)
     diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
-    full_log_likelihood = (
-        stats.multivariate_normal.logpdf(
-            x=control_arr,
-            mean=theta,
-            cov=covariance_of_correlation(
-                vector_to_triangle(theta, diag_value=1),
-                non_positive,
-            ),
-        ).sum()
-        + stats.multivariate_normal.logpdf(
-            x=diagnosed_arr,
-            mean=triangle_to_vector(g11),
-            cov=covariance_of_correlation(g11, non_positive),
-        ).sum()
-    )
-
-    null_log_likelihood = (
-        stats.multivariate_normal.logpdf(
-            x=control_arr,
-            mean=triangle_to_vector(null_mean),
-            cov=null_cov,
-        ).sum()
-        + stats.multivariate_normal.logpdf(
-            x=diagnosed_arr,
-            mean=triangle_to_vector(null_mean),
-            cov=null_cov,
-        ).sum()
-    )
+    try:
+        full_log_likelihood = (
+            stats.multivariate_normal.logpdf(
+                x=control_arr,
+                mean=theta,
+                cov=covariance_of_correlation(
+                    vector_to_triangle(theta, diag_value=1),
+                    non_positive,
+                ),
+                allow_singular=True,
+            ).sum()
+            + stats.multivariate_normal.logpdf(
+                x=diagnosed_arr,
+                mean=triangle_to_vector(g11),
+                cov=covariance_of_correlation(g11, non_positive),
+                allow_singular=True,
+            ).sum()
+        )
+        null_log_likelihood = (
+            stats.multivariate_normal.logpdf(
+                x=control_arr,
+                mean=triangle_to_vector(null_mean),
+                cov=null_cov,
+            ).sum()
+            + stats.multivariate_normal.logpdf(
+                x=diagnosed_arr,
+                mean=triangle_to_vector(null_mean),
+                cov=null_cov,
+            ).sum()
+        )
+    except ValueError as ex:
+        if "positive semidefinite" not in str(ex):
+            raise ex
+        full_log_likelihood = null_log_likelihood = np.nan
 
     chi2_val = 2 * (full_log_likelihood - null_log_likelihood)
     df = np.size(alpha)
     p_val = stats.chi2.sf(chi2_val, df)
-    return WilksTestResult(chi2_val, df, p_val)
+    return WilksTestResult(float(chi2_val), df, float(p_val))

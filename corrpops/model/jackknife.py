@@ -17,8 +17,7 @@ from .estimator import CorrPopsEstimator
 from .gee_covariance import GeeCovarianceEstimator
 from .inference import inference, wilks_test, WilksTestResult
 from .link_functions import BaseLinkFunction
-from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
-
+from .optimizer import CorrPopsOptimizer
 
 _JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",
@@ -164,13 +163,78 @@ class CorrPopsJackknifeEstimator:
             "gee_cov": None if gee_cov_stack is None else gee_cov_stack.mean(0),
         }
 
+    @classmethod
+    def results_from_json(cls, json_: Dict[str, Any]):
+        results = json_["results"]
+        out = {
+            "alpha": np.array(results["alpha"]),
+            "theta": np.array(results["theta"]),
+            "cov": vector_to_triangle(np.array(results["cov"]), diag=True),
+            "gee_cov_": vector_to_triangle(np.array(results["gee_cov_"]), diag=True)
+            if results["gee_cov_"]
+            else None,
+        }
+
+        if "stacks" in results:
+            stacks = results["stacks"]
+            out["stacks"] = {
+                "alpha": np.array(stacks["alpha"]),
+                "theta": np.array(stacks["theta"]),
+                "gee_cov_": vector_to_triangle(np.array(stacks["gee_cov_"]), diag=True)
+                if stacks["gee_cov_"]
+                else None,
+                "control_index": np.array(stacks["control_index"]),
+                "diagnosed_index": np.array(stacks["diagnosed_index"]),
+            }
+        return out
+
     def to_json(
         self,
         save_results: bool = True,
         save_params: bool = True,
         save_naive: bool = False,
+        save_base_results: bool = False,
+        save_stacks: bool = False,
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
-        raise NotImplementedError
+        json_ = {}
+
+        if save_params:
+            json_["params"] = {
+                "base_estimator": self.base_estimator.to_json(
+                    save_results=save_base_results,
+                    save_params=True,
+                    save_naive=save_naive,
+                ),
+                "jackknife": {
+                    "jack_control": self.jack_control,
+                    "steps_back": self.steps_back,
+                },
+            }
+        if save_results and self.is_fitted:
+            json_["results"] = {
+                "alpha": self.alpha_.tolist(),
+                "theta": self.theta_.tolist(),
+                "cov": triangle_to_vector(self.cov_, diag=True).tolist(),
+                "gee_cov_": triangle_to_vector(self.gee_cov_, diag=True).tolist()
+                if self.gee_cov_ is not None
+                else [],
+            }
+            if save_stacks:
+                json_["results"]["stacks"] = {
+                    "alpha": self.alpha_stack_.tolist(),
+                    "theta": self.theta_stack_.tolist(),
+                    "gee_cov_": triangle_to_vector(
+                        self.gee_cov_stack_, diag=True
+                    ).tolist()
+                    if self.gee_cov_stack_ is not None
+                    else [],
+                    "control_index": self.control_index_.tolist(),
+                    "diagnosed_index": self.diagnosed_index_.tolist(),
+                }
+        elif save_results:
+            json_["results"] = {}
+
+        return json_
 
     def _set_indices(
         self,
@@ -325,6 +389,7 @@ class CorrPopsJackknifeEstimator:
         self.theta_ = aggregates["theta"]
         self.cov_ = aggregates["cov"]
         self.gee_cov_ = aggregates["gee_cov"]
+        self.is_fitted = True
         return self
 
     def inference(

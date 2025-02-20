@@ -7,53 +7,70 @@ from linalg.triangle_vector import vector_to_triangle, triangle_to_vector
 
 
 class Transformer:
-    def __init__(self, func: Callable, inv: Callable):
+    def __init__(
+        self,
+        func: Callable,
+        inverse_func: Callable,
+        name: str = None,
+    ):
         self.func = func
-        self.inv = inv
+        self.inverse_func = inverse_func
+        self.name_ = name or func.__name__
 
     def transform(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-    def inv_transform(self, *args, **kwargs):
-        return self.inv(*args, **kwargs)
-
-
-def _identity(x):
-    return x
+    def inverse_transform(self, *args, **kwargs):
+        return self.inverse_func(*args, **kwargs)
 
 
 class BaseLinkFunction(ABC):
-    name: str = ""
-    null_value: float
+    name_: str
+    null_value_: float
 
-    def __init__(self, transformer=Transformer(_identity, _identity)):
-        self.transformer = transformer
+    def __init__(self, transformer: Transformer = None):
+        self.transformer = transformer or Transformer(lambda x: x, lambda x: x, "")
+
+    @property
+    def name(self):
+        return (
+            f"{self.name_}_{self.transformer.name_}"
+            if self.transformer.name_
+            else self.name_
+        )
+
+    @property
+    def null_value(self):
+        return self.transformer.inverse_transform(self.null_value_)
 
     def check_name_equal(self, name: str):
         if name != self.name:
             raise ValueError("link function mismatch")
 
+    def __call__(self, *, t, a, d):
+        return self.forward(t=t, a=a, d=d)
+
     @abstractmethod
-    def func(self, t, a, d):
+    def forward(self, *, t, a, d):
         pass
 
     @abstractmethod
-    def reverse(self, data, a, d):
+    def inverse(self, *, data, a, d):
         pass
 
 
 class MultiplicativeIdentity(BaseLinkFunction):
-    name = "multiplicative_identity"
-    null_value = 1.0
+    name_ = "multiplicative_identity"
+    null_value_ = 1.0
 
-    def func(self, t, a, d):
+    def forward(self, *, t, a, d):
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
         a[np.diag_indices_from(a)] = 1
         return vector_to_triangle(t, diag_value=1) * a
 
-    def reverse(self, data, a, d):
+    def inverse(self, *, data, a, d):
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
@@ -61,18 +78,19 @@ class MultiplicativeIdentity(BaseLinkFunction):
         return data / a
 
 
+# todo: bug fix!!!
 class AdditiveQuotient(BaseLinkFunction):
-    name = "additive_quotient"
-    null_value = 0.0
+    name_ = "additive_quotient"
+    null_value_ = 0.0
 
-    def func(self, t, a, d):
+    def forward(self, *, t, a, d):
         a = self.transformer.transform(a)
         a = np.tile(a, d).reshape((d, d))
         a = a + a.T
         a[np.diag_indices_from(a)] = 0
         return vector_to_triangle(t, diag_value=1) / (1 + a)
 
-    def reverse(self, data, a, d):
+    def inverse(self, *, data, a, d):
         a = self.transformer.transform(a)
         a = np.tile(a, d).reshape((d, d))
         a = a + a.T

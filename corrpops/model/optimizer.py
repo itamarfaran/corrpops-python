@@ -116,7 +116,7 @@ class CorrPopsOptimizer:
     ):
         is_positive_definite_ = (
             is_positive_definite(vector_to_triangle(theta, diag_value=1)),
-            is_positive_definite(link_function.func(theta, alpha, dim_alpha)),
+            is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
         )
         if not all(is_positive_definite_):
             warnings.warn("initial parameters dont yield positive-definite matrices")

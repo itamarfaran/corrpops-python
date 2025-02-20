@@ -66,7 +66,7 @@ def inference(
         )
 
     if known_alpha is not None:
-        result["known_alpha"] = link_function.transformer.inv_transform(
+        result["known_alpha"] = link_function.transformer.inverse_transform(
             known_alpha.flatten()
         )
 
@@ -84,7 +84,7 @@ def wilks_test(
 ) -> WilksTestResult:
     null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
     null_cov = covariance_of_correlation(null_mean, non_positive)
-    g11 = link_function.func(
+    g11 = link_function(
         t=theta,
         a=alpha,
         d=dim_alpha,

@@ -108,7 +108,7 @@ def create_samples_from_parameters(
     random_effect=0.0,
     random_state=None,
 ):
-    g11 = link_function.func(
+    g11 = link_function(
         t=triangle_to_vector(theta),
         a=alpha,
         d=alpha.shape[-1],

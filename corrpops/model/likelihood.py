@@ -14,7 +14,7 @@ def theta_of_alpha(
     link_function: BaseLinkFunction,
     dim_alpha: int = 1,
 ) -> np.ndarray:
-    reversed_diagnosed_arr = link_function.reverse(
+    reversed_diagnosed_arr = link_function.inverse(
         data=diagnosed_arr, a=alpha, d=dim_alpha
     )
     arr = np.concatenate((control_arr, reversed_diagnosed_arr))
@@ -31,7 +31,7 @@ def sum_of_squares(
     reg_lambda: float = 0.0,
     reg_p: float = 2.0,
 ) -> float:
-    g11 = triangle_to_vector(link_function.func(theta, alpha, dim_alpha))
+    g11 = triangle_to_vector(link_function(t=theta, a=alpha, d=dim_alpha))
 
     if inv_sigma is None:
         sse = np.sum(g11 * (0.5 * g11 - diagnosed_arr.mean(0)))

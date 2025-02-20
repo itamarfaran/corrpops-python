@@ -130,12 +130,12 @@ class GeeCovarianceEstimator:
                 dim_alpha=optimizer_results.dim_alpha,
             )
             return triangle_to_vector(
-                link_function.func(t=theta, a=a, d=optimizer_results.dim_alpha)
+                link_function(t=theta, a=a, d=optimizer_results.dim_alpha)
             )
 
         expected_value = (
             triangle_to_vector(
-                link_function.func(
+                link_function(
                     t=optimizer_results.theta,
                     a=optimizer_results.alpha,
                     d=optimizer_results.dim_alpha,

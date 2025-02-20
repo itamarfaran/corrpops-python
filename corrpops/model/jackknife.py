@@ -20,7 +20,7 @@ from .link_functions import BaseLinkFunction
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 
 
-JackknifeConstantArgs = namedtuple(
+_JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",
     [
         "optimizer",
@@ -35,7 +35,7 @@ JackknifeConstantArgs = namedtuple(
 )
 
 
-class JackknifeResult(TypedDict):
+class _JackknifeResult(TypedDict):
     theta: np.ndarray
     alpha: np.ndarray
     status: int
@@ -53,7 +53,7 @@ def _jackknife_single(
     alpha0: np.ndarray,
     theta0: np.ndarray,
     gee_estimator: Optional[GeeCovarianceEstimator],
-) -> JackknifeResult:
+) -> _JackknifeResult:
     if drop_in_diagnosed:
         diagnosed_arr = np.delete(diagnosed_arr, index_to_drop, axis=0)
         weights, _ = average_covariance_of_correlation(
@@ -98,12 +98,14 @@ class CorrPopsJackknifeEstimator:
         jack_control: bool = True,
         steps_back: int = 3,
         use_ray: bool = False,
+        ray_options: Optional[Dict[str, Any]] = None,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         self.base_estimator = base_estimator
         self.jack_control = jack_control
         self.steps_back = steps_back
         self.use_ray = use_ray
+        self.ray_options = ray_options or {}
         self.non_positive = non_positive
         self.is_fitted = False
 
@@ -132,9 +134,8 @@ class CorrPopsJackknifeEstimator:
             ]
         )
 
-    @classmethod
+    @staticmethod
     def aggregate_stacks(
-        cls,
         alpha_stack: np.ndarray,
         control_index: np.ndarray,
         diagnosed_index: np.ndarray,
@@ -171,7 +172,7 @@ class CorrPopsJackknifeEstimator:
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
         raise NotImplementedError
 
-    def set_indices(
+    def _set_indices(
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
@@ -184,7 +185,7 @@ class CorrPopsJackknifeEstimator:
         else:
             self.control_index_ = np.array([])
 
-    def get_jackknife(
+    def _get_jackknife(
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
@@ -192,8 +193,8 @@ class CorrPopsJackknifeEstimator:
         theta0: np.ndarray,
         weights: np.ndarray,
         compute_cov: bool,
-    ) -> List[JackknifeResult]:
-        args = JackknifeConstantArgs(
+    ) -> List[_JackknifeResult]:
+        args = _JackknifeConstantArgs(
             optimizer=self.base_estimator.optimizer,
             link_function=self.base_estimator.link_function,
             control_arr=control_arr,
@@ -214,7 +215,7 @@ class CorrPopsJackknifeEstimator:
                 results.append(current)
         return results
 
-    def get_jackknife_ray(
+    def _get_jackknife_ray(
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
@@ -222,16 +223,19 @@ class CorrPopsJackknifeEstimator:
         theta0: np.ndarray,
         weights: np.ndarray,
         compute_cov: bool,
-    ) -> List[JackknifeResult]:
+        ray_options: dict[str, Any],
+    ) -> List[_JackknifeResult]:
         if not _ray_installed:
             raise ModuleNotFoundError(
                 "missing optional dependency ray. "
                 "use_ray=True is not supported. "
                 "for multiprocessing install ray."
             )
+        options = self.ray_options.copy()
+        options.update(ray_options or {})
+        _jackknife_remote = ray.remote(_jackknife_single).options(**options)
 
-        _jackknife_remote = ray.remote(_jackknife_single)
-        args = JackknifeConstantArgs(
+        args = _JackknifeConstantArgs(
             optimizer=ray.put(self.base_estimator.optimizer),
             link_function=ray.put(self.base_estimator.link_function),
             control_arr=ray.put(control_arr),
@@ -252,8 +256,7 @@ class CorrPopsJackknifeEstimator:
             for index in range(control_arr.shape[0]):
                 run_id = _jackknife_remote.remote(index, False, *args)
                 futures.append(run_id)
-        results = ray.get(futures)
-        return results
+        return ray.get(futures)
 
     def fit(
         self,
@@ -262,6 +265,7 @@ class CorrPopsJackknifeEstimator:
         *,
         compute_cov: bool = False,
         optimizer_results: Optional[CorrPopsOptimizerResults] = None,
+        ray_options: Optional[Dict[str, Any]] = None,
     ):
         if optimizer_results is None:
             self.base_estimator.fit(
@@ -276,21 +280,31 @@ class CorrPopsJackknifeEstimator:
         last_step = steps[-min(1 + self.steps_back, len(steps))]
         alpha0 = last_step["alpha"]
         theta0 = last_step["theta"]
-
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
         )
 
-        results = (self.get_jackknife_ray if self.use_ray else self.get_jackknife)(
-            control_arr=triangle_to_vector(control_arr),
-            diagnosed_arr=triangle_to_vector(diagnosed_arr),
-            alpha0=alpha0,
-            theta0=theta0,
-            weights=weight_matrix,
-            compute_cov=compute_cov,
-        )
-        self.set_indices(control_arr=control_arr, diagnosed_arr=diagnosed_arr)
+        if self.use_ray:
+            results = self._get_jackknife_ray(
+                control_arr=triangle_to_vector(control_arr),
+                diagnosed_arr=triangle_to_vector(diagnosed_arr),
+                alpha0=alpha0,
+                theta0=theta0,
+                weights=weight_matrix,
+                compute_cov=compute_cov,
+                ray_options=ray_options,
+            )
+        else:
+            results = self._get_jackknife(
+                control_arr=triangle_to_vector(control_arr),
+                diagnosed_arr=triangle_to_vector(diagnosed_arr),
+                alpha0=alpha0,
+                theta0=theta0,
+                weights=weight_matrix,
+                compute_cov=compute_cov,
+            )
+        self._set_indices(control_arr=control_arr, diagnosed_arr=diagnosed_arr)
 
         self.alpha_stack_ = self.stack_if_not_none(results, "alpha", alpha0.shape)
         self.theta_stack_ = self.stack_if_not_none(results, "theta", theta0.shape)

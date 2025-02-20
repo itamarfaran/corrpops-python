@@ -13,7 +13,7 @@ def generate_covariance_with_random_effect(
     random_effect: float = 0.0,
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
-):
+) -> np.ndarray:
     if random_effect < 0:
         raise ValueError(
             f"expected random_effect to be non-negative, got {random_effect}"
@@ -34,7 +34,7 @@ def multivariate_normal_rvs(
     random_effect: float = 0.0,
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
-):
+) -> np.ndarray:
     if isinstance(size, int):
         size = (size,)
 
@@ -114,7 +114,7 @@ def arma_wishart_rvs(
     random_effect: float = 0.0,
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
-):
+) -> np.ndarray:
     if isinstance(size, int):
         size = (size,)
 

@@ -1,8 +1,9 @@
-from typing import Tuple
+from typing import Any, Iterable, Tuple, Union
 
 import numpy as np
 from scipy import stats
 
+from model.link_functions import BaseLinkFunction
 from linalg.matrix import force_symmetry, cov_to_corr
 from linalg.triangle_vector import triangle_to_vector
 from simulation.wishart import arma_wishart_rvs
@@ -51,25 +52,25 @@ def build_parameters(
 
 
 def create_samples(
-    control_n,
-    diagnosed_n,
-    control_correlation,
-    diagnosed_correlation,
-    t_length=100,
-    control_ar=None,
-    control_ma=None,
-    diagnosed_ar=None,
-    diagnosed_ma=None,
-    size=1,
-    random_effect=0.0,
-    random_state=None,
-):
+    control_n: int,
+    diagnosed_n: int,
+    control_covariance: np.ndarray,
+    diagnosed_covariance: np.ndarray,
+    t_length: int = 100,
+    control_ar: Union[float, Iterable[float]] = 0.0,
+    control_ma: Union[float, Iterable[float]] = 0.0,
+    diagnosed_ar: Union[float, Iterable[float]] = 0.0,
+    diagnosed_ma: Union[float, Iterable[float]] = 0.0,
+    size: int = 1,
+    random_effect: float = 0.0,
+    random_state: Any = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     rng = np.random.default_rng(random_state)
-    p = control_correlation.shape[-1]
+    p = control_covariance.shape[-1]
 
     control = arma_wishart_rvs(
         df=t_length,
-        scale=control_correlation,
+        scale=control_covariance,
         ar=control_ar,
         ma=control_ma,
         random_effect=random_effect,
@@ -79,7 +80,7 @@ def create_samples(
 
     diagnosed = arma_wishart_rvs(
         df=t_length,
-        scale=diagnosed_correlation,
+        scale=diagnosed_covariance,
         ar=diagnosed_ar,
         ma=diagnosed_ma,
         random_effect=random_effect,
@@ -94,20 +95,20 @@ def create_samples(
 
 
 def create_samples_from_parameters(
-    control_n,
-    diagnosed_n,
-    theta,
-    alpha,
-    link_function,
-    t_length=100,
-    control_ar=None,
-    control_ma=None,
-    diagnosed_ar=None,
-    diagnosed_ma=None,
-    size=1,
-    random_effect=0.0,
-    random_state=None,
-):
+    control_n: int,
+    diagnosed_n: int,
+    theta: np.ndarray,
+    alpha: np.ndarray,
+    link_function: BaseLinkFunction,
+    t_length: int = 100,
+    control_ar: Union[float, Iterable[float]] = 0.0,
+    control_ma: Union[float, Iterable[float]] = 0.0,
+    diagnosed_ar: Union[float, Iterable[float]] = 0.0,
+    diagnosed_ma: Union[float, Iterable[float]] = 0.0,
+    size: int = 1,
+    random_effect: float = 0.0,
+    random_state: Any = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     g11 = link_function(
         t=triangle_to_vector(theta),
         a=alpha,
@@ -116,8 +117,8 @@ def create_samples_from_parameters(
     return create_samples(
         control_n=control_n,
         diagnosed_n=diagnosed_n,
-        control_correlation=theta,
-        diagnosed_correlation=g11,
+        control_covariance=theta,
+        diagnosed_covariance=g11,
         t_length=t_length,
         control_ar=control_ar,
         control_ma=control_ma,

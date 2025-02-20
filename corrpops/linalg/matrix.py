@@ -60,11 +60,11 @@ def regularize_matrix(
         return arr + np.eye(p) * const
     elif method == "avg_diag":
         if not 0 <= const <= 1:
-            raise ValueError("in method 'avg_diag' const must be between 0-1")
+            raise ValueError("in method 'avg_diag' const must be in [0, 1]")
         return (1 - const) * arr + const * np.eye(p) * np.diag(arr).mean()
     elif method == "increase_diag":
         if not 0 <= const <= 1:
-            raise ValueError("in method 'increase_diag' const must be between 0-1")
+            raise ValueError("in method 'increase_diag' const must be in [0, 1]")
         return (1 - const) * arr + const * np.diag(np.diag(arr))
     else:
         raise ValueError

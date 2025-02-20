@@ -2,12 +2,12 @@ import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
 from scipy import linalg, optimize
 
-from linalg.matrix import is_positive_definite
+from linalg.matrix import is_positive_definite, regularize_matrix
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from .likelihood import theta_of_alpha, sum_of_squares
@@ -80,6 +80,9 @@ class CorrPopsOptimizer:
         max_iter: int = 50,
         reg_lambda: float = 0.0,
         reg_p: float = 2.0,
+        mat_reg_const: float = 0.0,
+        mat_reg_method: Literal["constant", "avg_diag", "increase_diag"] = "constant",
+        mat_reg_only_if_singular: bool = False,
         minimize_kwargs: Optional[Dict[str, Any]] = None,
         verbose: bool = True,
         save_optimize_results: bool = False,
@@ -92,6 +95,9 @@ class CorrPopsOptimizer:
         self.max_iter = max_iter
         self.reg_lambda = reg_lambda
         self.reg_p = reg_p
+        self.mat_reg_const = mat_reg_const
+        self.mat_reg_method = mat_reg_method
+        self.mat_reg_only_if_singular = mat_reg_only_if_singular
         self.minimize_kwargs = minimize_kwargs.copy() if minimize_kwargs else {}
         self.verbose = verbose
         self.save_optimize_results = save_optimize_results
@@ -125,6 +131,9 @@ class CorrPopsOptimizer:
             "max_iter": self.max_iter,
             "reg_lambda": self.reg_lambda,
             "reg_p": self.reg_p,
+            "mat_reg_const": self.mat_reg_const,
+            "mat_reg_method": self.mat_reg_method,
+            "mat_reg_only_if_singular": self.mat_reg_only_if_singular,
             "minimize_kwargs": self.minimize_kwargs,
         }
 
@@ -209,6 +218,12 @@ class CorrPopsOptimizer:
 
         self._check_positive_definite(theta, alpha, link_function, dim_alpha)
         if weights is not None:
+            weights = regularize_matrix(
+                weights,
+                const=self.mat_reg_const,
+                method=self.mat_reg_method,
+                only_if_singular=self.mat_reg_only_if_singular,
+            )
             inv_cov = linalg.inv(weights)
         else:
             inv_cov = None

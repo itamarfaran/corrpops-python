@@ -1,7 +1,8 @@
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from scipy import linalg, optimize
@@ -13,44 +14,58 @@ from .likelihood import theta_of_alpha, sum_of_squares
 from .link_functions import BaseLinkFunction
 
 
-class CorrPopsOptimizerResults(TypedDict):
+@dataclass
+class CorrPopsOptimizerResults:
     theta: np.ndarray
     alpha: np.ndarray
     inv_cov: Union[np.ndarray, None]
-    p: int
-    steps: List[Dict[str, Any]]
-    dim_alpha: int
     link_function: str
+    p: int
+    dim_alpha: int
+    steps: List[Dict[str, Any]]
 
+    def to_dict(self):
+        return {
+            "theta": self.theta,
+            "alpha": self.alpha,
+            "inv_cov": self.inv_cov,
+            "link_function": self.link_function,
+            "p": self.p,
+            "dim_alpha": self.dim_alpha,
+            "steps": self.steps,
+        }
 
-def results_to_json(results: CorrPopsOptimizerResults) -> Dict[str, Any]:
-    out: Dict[str, Any] = results.copy()
-    out.pop("steps")
-    out["theta"] = out["theta"].tolist()
-    out["alpha"] = out["alpha"].tolist()
-    out["inv_cov"] = (
-        triangle_to_vector(out["inv_cov"], diag=True).tolist()
-        if out["inv_cov"] is not None
-        else []
-    )
-    return out
+    def to_json(self):
+        out = self.to_dict()
+        out["theta"] = out["theta"].tolist()
+        out["alpha"] = out["alpha"].tolist()
+        out["inv_cov"] = (
+            triangle_to_vector(out["inv_cov"], diag=True).tolist()
+            if out["inv_cov"] is not None
+            else []
+        )
+        out.pop("steps")
+        return out
 
+    @classmethod
+    def from_dict(cls, dict_):
+        return cls(**dict_)
 
-def results_from_json(json_: Dict[str, Any]) -> CorrPopsOptimizerResults:
-    out: CorrPopsOptimizerResults = {
-        "theta": np.array(json_["theta"]),
-        "alpha": np.array(json_["alpha"]),
-        "inv_cov": (
-            vector_to_triangle(np.array(json_["inv_cov"]), diag=True)
-            if json_["inv_cov"]
-            else None
-        ),
-        "p": json_["p"],
-        "steps": [],
-        "dim_alpha": json_["dim_alpha"],
-        "link_function": json_["link_function"],
-    }
-    return out
+    @classmethod
+    def from_json(cls, json_):
+        return cls(
+            theta=np.array(json_["theta"]),
+            alpha=np.array(json_["alpha"]),
+            inv_cov=(
+                vector_to_triangle(np.array(json_["inv_cov"]), diag=True)
+                if json_["inv_cov"]
+                else None
+            ),
+            link_function=json_["link_function"],
+            p=json_["p"],
+            dim_alpha=json_["dim_alpha"],
+            steps=[],
+        )
 
 
 class CorrPopsOptimizer:
@@ -310,13 +325,12 @@ class CorrPopsOptimizer:
                 f"total time: {total_time.seconds // 60} minutes and {total_time.seconds} seconds"
             )
 
-        results: CorrPopsOptimizerResults = {
-            "theta": theta,
-            "alpha": alpha,
-            "inv_cov": inv_cov,
-            "link_function": link_function.name,
-            "p": p,
-            "dim_alpha": dim_alpha,
-            "steps": steps,
-        }
-        return results
+        return CorrPopsOptimizerResults(
+            theta=theta,
+            alpha=alpha,
+            inv_cov=inv_cov,
+            link_function=link_function.name,
+            p=p,
+            dim_alpha=dim_alpha,
+            steps=steps,
+        )

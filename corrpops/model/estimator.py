@@ -11,10 +11,7 @@ from .link_functions import BaseLinkFunction, MultiplicativeIdentity
 from .optimizer import (
     CorrPopsOptimizer,
     CorrPopsOptimizerResults,
-    results_to_json,
-    results_from_json,
 )
-
 
 _init_value_error_msg = (
     "cannot pass both an instantiated {0} and non-empty {0}_kwargs. "
@@ -108,13 +105,13 @@ class CorrPopsEstimator:
                 link_function.check_name_equal(
                     json_["results"]["optimizer"]["link_function"]
                 )
-                estimator.optimizer_results_ = results_from_json(
+                estimator.optimizer_results_ = CorrPopsOptimizerResults.from_json(
                     json_["results"]["optimizer"]
                 )
-                estimator.alpha_ = estimator.optimizer_results_["alpha"]
-                estimator.theta_ = estimator.optimizer_results_["theta"]
+                estimator.alpha_ = estimator.optimizer_results_.alpha
+                estimator.theta_ = estimator.optimizer_results_.theta
             if "naive_optimizer" in json_["results"]:
-                estimator.naive_optimizer_results_ = results_from_json(
+                estimator.naive_optimizer_results_ = CorrPopsOptimizerResults.from_json(
                     json_["results"]["naive_optimizer"]
                 )
             if "gee_estimator" in json_["results"]:
@@ -146,12 +143,12 @@ class CorrPopsEstimator:
             json_["results"] = {}
 
             if self.optimizer_results_:
-                json_["results"]["optimizer"] = results_to_json(self.optimizer_results_)
+                json_["results"]["optimizer"] = self.optimizer_results_.to_json()
 
             if save_naive and self.naive_optimizer_results_:
-                json_["results"]["naive_optimizer"] = results_to_json(
-                    self.naive_optimizer_results_
-                )
+                json_["results"][
+                    "naive_optimizer"
+                ] = self.naive_optimizer_results_.to_json()
 
             if self.cov_ is not None:
                 json_["results"]["gee_estimator"] = {
@@ -184,8 +181,8 @@ class CorrPopsEstimator:
                 link_function=self.link_function,
                 dim_alpha=self.dim_alpha,
             )
-            alpha0 = naive_optimizer_results["alpha"]
-            theta0 = naive_optimizer_results["theta"]
+            alpha0 = naive_optimizer_results.alpha
+            theta0 = naive_optimizer_results.theta
 
         self.optimizer_results_ = self.optimizer.optimize(
             control_arr=control_arr,
@@ -196,8 +193,8 @@ class CorrPopsEstimator:
             theta0=theta0,
             weights=weight_matrix,
         )
-        self.alpha_ = self.optimizer_results_["alpha"]
-        self.theta_ = self.optimizer_results_["theta"]
+        self.alpha_ = self.optimizer_results_.alpha
+        self.theta_ = self.optimizer_results_.theta
         self.is_fitted = True
 
         if compute_cov:

@@ -11,7 +11,7 @@ from .link_functions import BaseLinkFunction
 from .optimizer import CorrPopsOptimizerResults
 
 
-class GeeProperties(TypedDict):
+class _GeeProperties(TypedDict):
     data: np.ndarray
     jacobian: np.ndarray
     expected_value: np.ndarray
@@ -57,9 +57,9 @@ class GeeCovarianceEstimator:
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if self.jacobian_method == "simple":
-            jacobian = simple_jacobian(jacobian_func, optimizer_results["alpha"])
+            jacobian = simple_jacobian(jacobian_func, optimizer_results.alpha)
         else:
-            jacobian = richardson_jacobian(jacobian_func, optimizer_results["alpha"])
+            jacobian = richardson_jacobian(jacobian_func, optimizer_results.alpha)
 
         cov, _ = average_covariance_of_correlation(
             vector_to_triangle(arr, diag_value=1),
@@ -76,7 +76,7 @@ class GeeCovarianceEstimator:
         else:
             df = np.prod(arr.shape[0])
 
-        return GeeProperties(
+        return _GeeProperties(
             data=arr,
             jacobian=jacobian,
             expected_value=expected_value,
@@ -98,11 +98,11 @@ class GeeCovarianceEstimator:
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=link_function,
-                dim_alpha=optimizer_results["dim_alpha"],
+                dim_alpha=optimizer_results.dim_alpha,
             )
 
         expected_value = (
-            optimizer_results["theta"] if self.est_mu else np.mean(control_arr, axis=-1)
+            optimizer_results.theta if self.est_mu else np.mean(control_arr, axis=-1)
         )
 
         return self.create_properties(
@@ -127,18 +127,18 @@ class GeeCovarianceEstimator:
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=link_function,
-                dim_alpha=optimizer_results["dim_alpha"],
+                dim_alpha=optimizer_results.dim_alpha,
             )
             return triangle_to_vector(
-                link_function.func(t=theta, a=a, d=optimizer_results["dim_alpha"])
+                link_function.func(t=theta, a=a, d=optimizer_results.dim_alpha)
             )
 
         expected_value = (
             triangle_to_vector(
                 link_function.func(
-                    t=optimizer_results["theta"],
-                    a=optimizer_results["alpha"],
-                    d=optimizer_results["dim_alpha"],
+                    t=optimizer_results.theta,
+                    a=optimizer_results.alpha,
+                    d=optimizer_results.dim_alpha,
                 )
             )
             if self.est_mu
@@ -154,13 +154,13 @@ class GeeCovarianceEstimator:
         )
 
     @staticmethod
-    def calc_i0(properties: GeeProperties):
+    def calc_i0(properties: _GeeProperties):
         return properties["data"].shape[0] * (
             properties["jacobian"].T @ properties["inv_cov"] @ properties["jacobian"]
         )
 
     @staticmethod
-    def calc_i1(properties: GeeProperties):
+    def calc_i1(properties: _GeeProperties):
         residuals = properties["data"] - properties["expected_value"]
         covariance = residuals.T @ residuals / properties["df"]
         return properties["data"].shape[0] * (
@@ -180,7 +180,7 @@ class GeeCovarianceEstimator:
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
-        link_function.check_name_equal(optimizer_results["link_function"])
+        link_function.check_name_equal(optimizer_results.link_function)
 
         control_properties = self.create_control_properties(
             control_arr=control_arr,

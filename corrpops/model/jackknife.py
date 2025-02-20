@@ -84,9 +84,9 @@ def _jackknife_single(
         cov = None
 
     return {
-        "theta": results["theta"],
-        "alpha": results["alpha"],
-        "status": results["steps"][-1]["status"],
+        "theta": results.theta,
+        "alpha": results.alpha,
+        "status": results.steps[-1]["status"],
         "cov": cov,
     }
 
@@ -264,22 +264,23 @@ class CorrPopsJackknifeEstimator:
         diagnosed_arr: np.ndarray,
         *,
         compute_cov: bool = False,
-        optimizer_results: Optional[CorrPopsOptimizerResults] = None,
         ray_options: Optional[Dict[str, Any]] = None,
     ):
-        if optimizer_results is None:
+        if self.base_estimator.optimizer_results_ is None:
             self.base_estimator.fit(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 compute_cov=False,
             )
-            steps = self.base_estimator.optimizer_results_["steps"]
-        else:
-            steps = optimizer_results["steps"]
+        steps = self.base_estimator.optimizer_results_.steps
 
-        last_step = steps[-min(1 + self.steps_back, len(steps))]
-        alpha0 = last_step["alpha"]
-        theta0 = last_step["theta"]
+        if len(steps) > self.steps_back:
+            alpha0 = steps[-self.steps_back - 1]["alpha"]
+            theta0 = steps[-self.steps_back - 1]["theta"]
+        else:
+            alpha0 = self.base_estimator.alpha_
+            theta0 = self.base_estimator.theta_
+
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,

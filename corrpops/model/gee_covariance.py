@@ -171,7 +171,6 @@ class GeeCovarianceEstimator:
             @ properties["jacobian"]
         )
 
-    # todo: debug!
     def compute(
         self,
         control_arr: np.ndarray,
@@ -198,5 +197,5 @@ class GeeCovarianceEstimator:
         )
         i0 = self.calc_i0(control_properties) + self.calc_i0(diagnosed_properties)
         i1 = self.calc_i1(control_properties) + self.calc_i1(diagnosed_properties)
-        i1_inv = np.linalg.inv(i1)
-        return i0 @ i1_inv @ i0
+        i0_inv = np.linalg.inv(i0)
+        return i0_inv @ i1 @ i0_inv

@@ -14,5 +14,8 @@ setup(
         "scipy >= 1.6.0,",
         "numba",
     ],
-    tests_require=["pytest"],
+    tests_require=[
+        "pytest",
+        "statsmodels",
+    ],
 )

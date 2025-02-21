@@ -13,7 +13,7 @@ def build_parameters(
     p: int,
     percent_alpha: float,
     alpha_min: float,
-    alpha_max: float,
+    alpha_max: float = 1,
     dim_alpha: int = 1,
     theta_loc: float = 0.0,
     theta_scale: float = 1.0,

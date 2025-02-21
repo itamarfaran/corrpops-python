@@ -30,6 +30,15 @@ class BaseLinkFunction(ABC):
 
     def __init__(self, transformer: Transformer = None):
         self.transformer = transformer or Transformer(lambda x: x, lambda x: x, "")
+        self._validate_transformer()
+
+    def _validate_transformer(self):
+        transformed = self.transformer.inverse_transform(self.null_value_)
+        if not np.allclose(self.null_value_, self.transformer.transform(transformed)):
+            raise ValueError(
+                "self.transformer.inverse_transform does not "
+                "correctly inverse self.transformer.transform"
+            )
 
     @property
     def name(self):

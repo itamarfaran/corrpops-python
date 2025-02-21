@@ -78,21 +78,20 @@ class MultiplicativeIdentity(BaseLinkFunction):
         return data / a
 
 
-# todo: bug fix!!!
 class AdditiveQuotient(BaseLinkFunction):
     name_ = "additive_quotient"
     null_value_ = 0.0
 
     def forward(self, *, t, a, d):
         a = self.transformer.transform(a)
-        a = np.tile(a, d).reshape((d, d))
+        a = a.reshape((int(a.size / d), d))
         a = a + a.T
         a[np.diag_indices_from(a)] = 0
         return vector_to_triangle(t, diag_value=1) / (1 + a)
 
     def inverse(self, *, data, a, d):
         a = self.transformer.transform(a)
-        a = np.tile(a, d).reshape((d, d))
+        a = a.reshape((int(a.size / d), d))
         a = a + a.T
         a = triangle_to_vector(a)
-        return data * (1 + np.outer(len(data), a))
+        return data * (1 + a)

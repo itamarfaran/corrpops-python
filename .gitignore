@@ -1,3 +1,4 @@
 /.idea*
 /corrpops/tga_aal.npz
 /corrpops/nmda_aal.npz
+*.coverage

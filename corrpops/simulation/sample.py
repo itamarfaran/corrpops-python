@@ -3,9 +3,9 @@ from typing import Any, Iterable, Tuple, Union
 import numpy as np
 from scipy import stats
 
-from model.link_functions import BaseLinkFunction
 from linalg.matrix import force_symmetry, cov_to_corr
 from linalg.triangle_vector import triangle_to_vector
+from model.link_functions import BaseLinkFunction
 from simulation.wishart import arma_wishart_rvs
 
 

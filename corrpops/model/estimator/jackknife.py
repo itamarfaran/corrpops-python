@@ -12,12 +12,12 @@ except ModuleNotFoundError:
 
 
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
-from .covariance_of_correlation import average_covariance_of_correlation
-from .estimator import CorrPopsEstimator
-from .gee_covariance import GeeCovarianceEstimator
-from .inference import inference, wilks_test, WilksTestResult
-from .link_functions import BaseLinkFunction
-from .optimizer import CorrPopsOptimizer
+from model.covariance_of_correlation import average_covariance_of_correlation
+from model.estimator.estimator import CorrPopsEstimator
+from model.estimator.gee_covariance import GeeCovarianceEstimator
+from model.inference import inference, wilks_test, WilksTestResult
+from model.link_functions import BaseLinkFunction
+from model.estimator.optimizer import CorrPopsOptimizer
 
 _JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",

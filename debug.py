@@ -1,19 +1,21 @@
 import gzip
 import json
 
+import numpy as np
 import pandas as pd
 
 from data.loaders import load_data
 from data.preproccessing import preprocess
-from model.estimator import CorrPopsEstimator
-from model.jackknife import CorrPopsJackknifeEstimator
-from model.optimizer import CorrPopsOptimizer
-from model.link_functions import MultiplicativeIdentity
+from model import link_functions
+from model.estimator import (
+    CorrPopsEstimator,
+    CorrPopsJackknifeEstimator,
+    CorrPopsOptimizer,
+)
 from simulation.sample import build_parameters, create_samples_from_parameters
 
-
-REAL_DATA: bool = True
-JACKKNIFE: bool = False
+REAL_DATA: bool = False
+JACKKNIFE: bool = True
 
 
 if REAL_DATA:
@@ -35,7 +37,7 @@ else:
         diagnosed_n=12,
         theta=theta,
         alpha=alpha,
-        link_function=MultiplicativeIdentity(),
+        link_function=link_functions.AdditiveQuotient(),
         t_length=100,
         control_ar=[0.5, 0.2],
         control_ma=0.2,
@@ -49,8 +51,14 @@ else:
 
 
 model = CorrPopsEstimator(
-    # link_function=MultiplicativeIdentity(transformer=Transformer(np.log, np.exp))
-    optimizer=CorrPopsOptimizer(verbose=True),
+    link_function=link_functions.AdditiveQuotient(
+        transformer=link_functions.Transformer(np.log, np.exp)
+    ),
+    optimizer=CorrPopsOptimizer(
+        mat_reg_const=0.1,
+        early_stop=True,
+        verbose=True,
+    ),
     non_positive="warn",
 )
 model.fit(control, diagnosed, compute_cov=False)
@@ -70,31 +78,33 @@ new_model = CorrPopsEstimator.from_json(
     non_positive="warn",
 ).compute_covariance(control, diagnosed)
 
-print(
-    pd.DataFrame(
-        new_model.inference(
+gee_inference = pd.DataFrame(
+    new_model.inference(
+        p_adjust_method="fdr_bh",
+        known_alpha=alpha,
+    )
+)
+gee_wilks_score = new_model.score(control, diagnosed)
+print(gee_inference)
+print(gee_wilks_score)
+
+if JACKKNIFE:
+    _ = CorrPopsJackknifeEstimator(
+        new_model,
+        use_ray=True,
+    ).fit(control, diagnosed, compute_cov=True)
+
+    jackknife_model = CorrPopsJackknifeEstimator(
+        CorrPopsEstimator(optimizer_kwargs={"verbose": False}),
+        use_ray=False,
+    ).fit(control, diagnosed)
+
+    jackknife_inference = pd.DataFrame(
+        jackknife_model.inference(
             p_adjust_method="fdr_bh",
             known_alpha=alpha,
         )
     )
-)
-print(new_model.score(control, diagnosed))
-
-if JACKKNIFE:
-    _ = CorrPopsJackknifeEstimator(
-        CorrPopsEstimator(optimizer_kwargs={"verbose": False}), use_ray=True
-    ).fit(control, diagnosed, compute_cov=True)
-
-    jackknife = CorrPopsJackknifeEstimator(
-        CorrPopsEstimator(optimizer_kwargs={"verbose": False}), use_ray=False
-    ).fit(control, diagnosed)
-
-    print(
-        pd.DataFrame(
-            jackknife.inference(
-                p_adjust_method="fdr_bh",
-                known_alpha=alpha,
-            )
-        )
-    )
-    print(jackknife.score(control, diagnosed))
+    jackknife_wilks_score = jackknife_model.score(control, diagnosed)
+    print(jackknife_inference)
+    print(jackknife_wilks_score)

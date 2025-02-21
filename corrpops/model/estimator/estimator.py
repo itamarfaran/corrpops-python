@@ -4,14 +4,14 @@ from typing import Any, Dict, Optional, Union, Literal
 import numpy as np
 
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
-from .covariance_of_correlation import average_covariance_of_correlation
-from .gee_covariance import GeeCovarianceEstimator
-from .inference import inference, wilks_test, WilksTestResult
-from .link_functions import BaseLinkFunction, MultiplicativeIdentity
-from .optimizer import (
+from model.covariance_of_correlation import average_covariance_of_correlation
+from model.estimator.gee_covariance import GeeCovarianceEstimator
+from model.estimator.optimizer import (
     CorrPopsOptimizer,
     CorrPopsOptimizerResults,
 )
+from model.inference import inference, wilks_test, WilksTestResult
+from model.link_functions import BaseLinkFunction, MultiplicativeIdentity
 
 _init_value_error_msg = (
     "cannot pass both an instantiated {0} and non-empty {0}_kwargs. "

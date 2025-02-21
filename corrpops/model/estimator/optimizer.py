@@ -10,8 +10,8 @@ from scipy import linalg, optimize
 from linalg.matrix import is_positive_definite, regularize_matrix
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
-from .likelihood import theta_of_alpha, sum_of_squares
-from .link_functions import BaseLinkFunction
+from model.likelihood import theta_of_alpha, sum_of_squares
+from model.link_functions import BaseLinkFunction
 
 
 @dataclass

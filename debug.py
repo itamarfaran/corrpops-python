@@ -37,7 +37,7 @@ else:
         diagnosed_n=12,
         theta=theta,
         alpha=alpha,
-        link_function=link_functions.AdditiveQuotient(),
+        link_function=link_functions.MultiplicativeIdentity(),
         t_length=100,
         control_ar=[0.5, 0.2],
         control_ma=0.2,
@@ -51,7 +51,7 @@ else:
 
 
 model = CorrPopsEstimator(
-    link_function=link_functions.AdditiveQuotient(
+    link_function=link_functions.MultiplicativeIdentity(
         transformer=link_functions.Transformer(np.log, np.exp)
     ),
     optimizer=CorrPopsOptimizer(

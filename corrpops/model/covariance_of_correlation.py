@@ -1,5 +1,5 @@
 import warnings
-from typing import Literal
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 from numba import njit
@@ -82,7 +82,11 @@ def covariance_of_fisher_correlation(
     return grad @ result @ grad
 
 
-def estimated_df(est, theo, only_diag=False):
+def estimated_df(
+    est: np.ndarray,
+    theo: np.ndarray,
+    only_diag: bool = False,
+) -> float:
     if only_diag:
         row, col = np.diag_indices_from(theo)
         x = theo[..., row, col].flatten()
@@ -91,7 +95,7 @@ def estimated_df(est, theo, only_diag=False):
         x = triangle_to_vector(theo, True)
         y = triangle_to_vector(est, True)
 
-    return np.linalg.lstsq(x[:, np.newaxis], y)[0]
+    return float(np.linalg.lstsq(x[:, np.newaxis], y)[0][0])
 
 
 def average_covariance_of_correlation(
@@ -100,7 +104,7 @@ def average_covariance_of_correlation(
     est_n: bool = False,
     only_diag: bool = True,
     non_positive: Literal["raise", "warn", "ignore"] = "raise",
-):
+) -> Tuple[np.ndarray, Optional[float]]:
     if fisher:
         cov = covariance_of_fisher_correlation(arr, non_positive)
     else:

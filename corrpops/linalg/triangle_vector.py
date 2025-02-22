@@ -4,35 +4,35 @@ from linalg.matrix import fill_other_triangle
 
 
 def triangle_to_vector(
-    arr: np.ndarray,
+    a: np.ndarray,
     diag: bool = False,
     check: bool = False,
 ) -> np.ndarray:
-    if arr.shape[-2] != arr.shape[-1]:
-        raise IndexError(f"array is not square ({arr.shape[-2]} != {arr.shape[-1]}")
-    if check and not np.allclose(arr, np.swapaxes(arr, -1, -2)):
-        raise ValueError("arr is not symmetric")
-    row, col = np.tril_indices(arr.shape[-1], 0 if diag else -1)
-    return arr[..., row, col]
+    if a.shape[-2] != a.shape[-1]:
+        raise IndexError(f"array is not square ({a.shape[-2]} != {a.shape[-1]}")
+    if check and not np.allclose(a, np.swapaxes(a, -1, -2)):
+        raise ValueError("a is not symmetric")
+    row, col = np.tril_indices(a.shape[-1], 0 if diag else -1)
+    return a[..., row, col]
 
 
 def vector_to_triangle(
-    arr: np.ndarray,
+    a: np.ndarray,
     diag: bool = False,
     diag_value: float = np.nan,
 ) -> np.ndarray:
-    p = 0.5 * ((-1 if diag else 1) + np.array((-1, 1)) * np.sqrt(1 + 8 * arr.shape[-1]))
+    p = 0.5 * ((-1 if diag else 1) + np.array((-1, 1)) * np.sqrt(1 + 8 * a.shape[-1]))
     p = p[np.allclose(p, p.astype(int)) & (p > 0)]
     if len(p) == 1:
         p = int(p[0])
     else:
         raise IndexError(
-            f"array shape ({arr.shape[-1]}) does not fit size of triangular matrix"
+            f"array shape ({a.shape[-1]}) does not fit size of triangular matrix"
         )
 
-    out = np.zeros(arr.shape[:-1] + (p, p))
+    out = np.zeros(a.shape[:-1] + (p, p))
     row, col = np.tril_indices(p, 0 if diag else -1)
-    out[..., row, col] = arr
+    out[..., row, col] = a
     out = fill_other_triangle(out)
 
     if not diag:

@@ -1,8 +1,8 @@
-from typing import Callable, Literal, TypedDict
+from typing import Any, Dict, Callable, Literal, TypedDict
 
 import numpy as np
+from scipy import optimize
 
-from linalg.jacobian import simple_jacobian, richardson_jacobian
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.optimizer import CorrPopsOptimizerResults
@@ -24,20 +24,14 @@ class GeeCovarianceEstimator:
         self,
         *,
         est_mu: bool = True,
-        jacobian_method: Literal["simple", "richardson"] = "richardson",
-        sample_size: Literal["estimated", "naive"] = "estimated",
         df_method: Literal["naive", "efron"] = "naive",
     ):
         self.est_mu = est_mu
-        self.jacobian_method = jacobian_method
-        self.sample_size = sample_size
         self.df_method = df_method
 
-    def get_params(self):
+    def get_params(self) -> Dict[str, Any]:
         return {
             "est_mu": self.est_mu,
-            "jacobian_method": self.jacobian_method,
-            "sample_size": self.sample_size,
             "df_method": self.df_method,
         }
 
@@ -55,11 +49,8 @@ class GeeCovarianceEstimator:
         jacobian_func: Callable[[np.ndarray], np.ndarray],
         expected_value: np.ndarray,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
-    ):
-        if self.jacobian_method == "simple":
-            jacobian = simple_jacobian(jacobian_func, optimizer_results.alpha)
-        else:
-            jacobian = richardson_jacobian(jacobian_func, optimizer_results.alpha)
+    ) -> _GeeProperties:
+        jacobian = optimize.approx_fprime(optimizer_results.alpha, jacobian_func)
 
         cov, _ = average_covariance_of_correlation(
             vector_to_triangle(arr, diag_value=1),
@@ -74,7 +65,7 @@ class GeeCovarianceEstimator:
                 rms=efron_rms_sample(arr),
             )
         else:
-            df = np.prod(arr.shape[0])
+            df = np.prod(arr.shape[:-1])
 
         return _GeeProperties(
             data=arr,
@@ -91,15 +82,16 @@ class GeeCovarianceEstimator:
         link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
-    ):
-        def _inner(a):
-            return theta_of_alpha(
+    ) -> _GeeProperties:
+        def jacobian_func(a):
+            theta = theta_of_alpha(
                 alpha=a,
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=link_function,
                 dim_alpha=optimizer_results.dim_alpha,
             )
+            return theta
 
         expected_value = (
             optimizer_results.theta if self.est_mu else np.mean(control_arr, axis=-1)
@@ -108,7 +100,7 @@ class GeeCovarianceEstimator:
         return self.create_properties(
             arr=control_arr,
             optimizer_results=optimizer_results,
-            jacobian_func=_inner,
+            jacobian_func=jacobian_func,
             expected_value=expected_value,
             non_positive=non_positive,
         )
@@ -120,8 +112,8 @@ class GeeCovarianceEstimator:
         link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
-    ):
-        def _inner(a):
+    ) -> _GeeProperties:
+        def jacobian_func(a):
             theta = theta_of_alpha(
                 alpha=a,
                 control_arr=control_arr,
@@ -130,7 +122,11 @@ class GeeCovarianceEstimator:
                 dim_alpha=optimizer_results.dim_alpha,
             )
             return triangle_to_vector(
-                link_function(t=theta, a=a, d=optimizer_results.dim_alpha)
+                link_function(
+                    t=theta,
+                    a=a,
+                    d=optimizer_results.dim_alpha,
+                )
             )
 
         expected_value = (
@@ -148,19 +144,19 @@ class GeeCovarianceEstimator:
         return self.create_properties(
             arr=diagnosed_arr,
             optimizer_results=optimizer_results,
-            jacobian_func=_inner,
+            jacobian_func=jacobian_func,
             expected_value=expected_value,
             non_positive=non_positive,
         )
 
     @staticmethod
-    def calc_i0(properties: _GeeProperties):
+    def calc_i0(properties: _GeeProperties) -> np.ndarray:
         return properties["data"].shape[0] * (
             properties["jacobian"].T @ properties["inv_cov"] @ properties["jacobian"]
         )
 
     @staticmethod
-    def calc_i1(properties: _GeeProperties):
+    def calc_i1(properties: _GeeProperties) -> np.ndarray:
         residuals = properties["data"] - properties["expected_value"]
         covariance = residuals.T @ residuals / properties["df"]
         return properties["data"].shape[0] * (
@@ -178,7 +174,7 @@ class GeeCovarianceEstimator:
         link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
-    ):
+    ) -> np.ndarray:
         link_function.check_name_equal(optimizer_results.link_function)
 
         control_properties = self.create_control_properties(

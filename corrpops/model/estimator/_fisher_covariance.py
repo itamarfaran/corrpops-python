@@ -7,8 +7,8 @@ from scipy import optimize
 from linalg.matrix import force_symmetry
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
-from model.estimator.optimizer import CorrPopsOptimizerResults
 from model.estimator.covariance import CovarianceEstimator
+from model.estimator.optimizer import CorrPopsOptimizerResults
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
 

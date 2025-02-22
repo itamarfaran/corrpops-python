@@ -8,7 +8,6 @@ from statsmodels.stats.moment_helpers import cov2corr
 from linalg.matrix import cov_to_corr
 from model.covariance_of_correlation import covariance_of_correlation
 
-
 N_P_VALUES = list(
     itertools.product(
         [1, 10],

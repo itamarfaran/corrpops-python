@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 from corrpops.data.preproccessing import matlab_to_dict
+from corrpops.linalg.triangle_vector import triangle_to_vector
 
 
 def get_root_directory():
@@ -20,6 +21,8 @@ def update_amnesia(root: Path):
             control_indices_key="CONTROLS",
             diagnosed_indices_key=key,
         )
+        results["control"] = triangle_to_vector(results["control"])
+        results["diagnosed"] = triangle_to_vector(results["diagnosed"])
         np.savez_compressed(
             file=root.joinpath("data", f"{key.lower()}_aal.npz"),
             **results
@@ -35,6 +38,8 @@ def update_nmda(root):
         control_indices_key="CONTROLS",
         diagnosed_indices_key="NMDA",
     )
+    results["control"] = triangle_to_vector(results["control"])
+    results["diagnosed"] = triangle_to_vector(results["diagnosed"])
     np.savez_compressed(
         file=root.joinpath("data", "nmda_aal.npz"),
         **results

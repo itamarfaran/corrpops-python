@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Callable, Literal, TypedDict
 
 import numpy as np
@@ -11,6 +12,32 @@ from model.link_functions import BaseLinkFunction
 from statistics.efron_rms import efron_effective_sample_size, efron_rms_sample
 
 
+class CovarianceEstimator(ABC):
+    def get_params(self, **params) -> Dict[str, Any]:
+        return {
+            "name": type(self).__name__,
+            **params,
+        }
+
+    def set_params(self, **params):
+        for k, v in params.items():
+            if not hasattr(self, k):
+                raise ValueError(f"Invalid parameter {k} for estimator {self}.")
+            setattr(self, k, v)
+        return self
+
+    @abstractmethod
+    def compute(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+        link_function: BaseLinkFunction,
+        optimizer_results: CorrPopsOptimizerResults,
+        non_positive: Literal["raise", "warn", "ignore"] = "raise",
+    ) -> np.ndarray:
+        raise NotImplementedError
+
+
 class _GeeProperties(TypedDict):
     data: np.ndarray
     jacobian: np.ndarray
@@ -19,7 +46,7 @@ class _GeeProperties(TypedDict):
     df: float
 
 
-class GeeCovarianceEstimator:
+class GeeCovarianceEstimator(CovarianceEstimator):
     def __init__(
         self,
         *,
@@ -30,17 +57,7 @@ class GeeCovarianceEstimator:
         self.df_method = df_method
 
     def get_params(self) -> Dict[str, Any]:
-        return {
-            "est_mu": self.est_mu,
-            "df_method": self.df_method,
-        }
-
-    def set_params(self, **params):
-        for k, v in params.items():
-            if not hasattr(self, k):
-                raise ValueError(f"Invalid parameter {k} for estimator {self}.")
-            setattr(self, k, v)
-        return self
+        return super().get_params(est_mu=self.est_mu, df_method=self.df_method)
 
     def create_properties(
         self,

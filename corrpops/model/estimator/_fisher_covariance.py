@@ -8,11 +8,12 @@ from linalg.matrix import force_symmetry
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.optimizer import CorrPopsOptimizerResults
+from model.estimator.covariance import CovarianceEstimator
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
 
 
-class FisherSandwichCovarianceEstimator:
+class FisherSandwichCovarianceEstimator(CovarianceEstimator):
     def __init__(
         self,
         *,
@@ -24,17 +25,7 @@ class FisherSandwichCovarianceEstimator:
         self.estimated_n = estimated_n
 
     def get_params(self) -> Dict[str, Any]:
-        return {
-            "est_mu": self.est_mu,
-            "estimated_n": self.estimated_n,
-        }
-
-    def set_params(self, **params):
-        for k, v in params.items():
-            if not hasattr(self, k):
-                raise ValueError(f"Invalid parameter {k} for estimator {self}.")
-            setattr(self, k, v)
-        return self
+        return super().get_params(est_mu=self.est_mu, estimated_n=self.estimated_n)
 
     @staticmethod
     def compute_by_gradient(

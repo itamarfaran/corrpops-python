@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.estimator import CorrPopsEstimator
-from model.estimator.gee_covariance import GeeCovarianceEstimator
+from model.estimator.covariance import GeeCovarianceEstimator
 from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction
 from model.estimator.optimizer import CorrPopsOptimizer
@@ -29,7 +29,7 @@ _JackknifeConstantArgs = namedtuple(
         "weights",
         "alpha0",
         "theta0",
-        "gee_estimator",
+        "covariance_estimator",
     ],
 )
 
@@ -51,7 +51,7 @@ def _jackknife_single(
     weights: np.ndarray,
     alpha0: np.ndarray,
     theta0: np.ndarray,
-    gee_estimator: Optional[GeeCovarianceEstimator],
+    covariance_estimator: Optional[GeeCovarianceEstimator],
 ) -> _JackknifeResult:
     if drop_in_diagnosed:
         diagnosed_arr = np.delete(diagnosed_arr, index_to_drop, axis=0)
@@ -72,7 +72,7 @@ def _jackknife_single(
         weights=weights,
     )
     try:
-        cov = gee_estimator.compute(
+        cov = covariance_estimator.compute(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
             link_function=link_function,
@@ -112,14 +112,14 @@ class CorrPopsJackknifeEstimator:
         self.alpha_: Optional[np.ndarray] = None
         self.theta_: Optional[np.ndarray] = None
         self.cov_: Optional[np.ndarray] = None
-        self.gee_cov_: Optional[np.ndarray] = None
+        self.cov_est_: Optional[np.ndarray] = None
 
         self.control_index_: Optional[np.ndarray] = None
         self.diagnosed_index_: Optional[np.ndarray] = None
 
         self.alpha_stack_: Optional[np.ndarray] = None
         self.theta_stack_: Optional[np.ndarray] = None
-        self.gee_cov_stack_: Optional[np.ndarray] = None
+        self.cov_est_stack_: Optional[np.ndarray] = None
 
     @staticmethod
     def stack_if_not_none(
@@ -140,7 +140,7 @@ class CorrPopsJackknifeEstimator:
         control_index: np.ndarray,
         diagnosed_index: np.ndarray,
         theta_stack: Optional[np.ndarray] = None,
-        gee_cov_stack: Optional[np.ndarray] = None,
+        cov_est_stack: Optional[np.ndarray] = None,
     ) -> Dict[str, Optional[np.ndarray]]:
         diagnosed_n = len(diagnosed_index)
         diagnosed_constant = (diagnosed_n - 1) ** 2 / diagnosed_n
@@ -161,7 +161,7 @@ class CorrPopsJackknifeEstimator:
             # "alpha": (diagnosed_mean + control_mean) / 2,
             "cov": diagnosed_variance + control_variance,
             "theta": None if theta_stack is None else theta_stack.mean(0),
-            "gee_cov": None if gee_cov_stack is None else gee_cov_stack.mean(0),
+            "cov_est": None if cov_est_stack is None else cov_est_stack.mean(0),
         }
 
     @classmethod
@@ -171,8 +171,8 @@ class CorrPopsJackknifeEstimator:
             "alpha": np.array(results["alpha"]),
             "theta": np.array(results["theta"]),
             "cov": vector_to_triangle(np.array(results["cov"]), diag=True),
-            "gee_cov_": vector_to_triangle(np.array(results["gee_cov_"]), diag=True)
-            if results["gee_cov_"]
+            "cov_est_": vector_to_triangle(np.array(results["cov_est_"]), diag=True)
+            if results["cov_est_"]
             else None,
         }
 
@@ -181,8 +181,8 @@ class CorrPopsJackknifeEstimator:
             out["stacks"] = {
                 "alpha": np.array(stacks["alpha"]),
                 "theta": np.array(stacks["theta"]),
-                "gee_cov_": vector_to_triangle(np.array(stacks["gee_cov_"]), diag=True)
-                if stacks["gee_cov_"]
+                "cov_est_": vector_to_triangle(np.array(stacks["cov_est_"]), diag=True)
+                if stacks["cov_est_"]
                 else None,
                 "control_index": np.array(stacks["control_index"]),
                 "diagnosed_index": np.array(stacks["diagnosed_index"]),
@@ -216,18 +216,18 @@ class CorrPopsJackknifeEstimator:
                 "alpha": self.alpha_.tolist(),
                 "theta": self.theta_.tolist(),
                 "cov": triangle_to_vector(self.cov_, diag=True).tolist(),
-                "gee_cov_": triangle_to_vector(self.gee_cov_, diag=True).tolist()
-                if self.gee_cov_ is not None
+                "cov_est_": triangle_to_vector(self.cov_est_, diag=True).tolist()
+                if self.cov_est_ is not None
                 else [],
             }
             if save_stacks:
                 json_["results"]["stacks"] = {
                     "alpha": self.alpha_stack_.tolist(),
                     "theta": self.theta_stack_.tolist(),
-                    "gee_cov_": triangle_to_vector(
-                        self.gee_cov_stack_, diag=True
+                    "cov_est_": triangle_to_vector(
+                        self.cov_est_stack_, diag=True
                     ).tolist()
-                    if self.gee_cov_stack_ is not None
+                    if self.cov_est_stack_ is not None
                     else [],
                     "control_index": self.control_index_.tolist(),
                     "diagnosed_index": self.diagnosed_index_.tolist(),
@@ -267,7 +267,9 @@ class CorrPopsJackknifeEstimator:
             weights=weights,
             alpha0=alpha0,
             theta0=theta0,
-            gee_estimator=self.base_estimator.gee_estimator if compute_cov else None,
+            covariance_estimator=self.base_estimator.covariance_estimator
+            if compute_cov
+            else None,
         )
 
         results = []
@@ -308,7 +310,7 @@ class CorrPopsJackknifeEstimator:
             weights=ray.put(weights),
             alpha0=ray.put(alpha0),
             theta0=ray.put(theta0),
-            gee_estimator=ray.put(self.base_estimator.gee_estimator)
+            covariance_estimator=ray.put(self.base_estimator.covariance_estimator)
             if compute_cov
             else None,
         )
@@ -375,7 +377,7 @@ class CorrPopsJackknifeEstimator:
         self.alpha_stack_ = self.stack_if_not_none(results, "alpha", alpha0.shape)
         self.theta_stack_ = self.stack_if_not_none(results, "theta", theta0.shape)
         if compute_cov:
-            self.gee_cov_stack_ = self.stack_if_not_none(
+            self.cov_est_stack_ = self.stack_if_not_none(
                 results, "cov", (alpha0.size, alpha0.size)
             )
 
@@ -384,12 +386,12 @@ class CorrPopsJackknifeEstimator:
             control_index=self.control_index_,
             diagnosed_index=self.diagnosed_index_,
             theta_stack=self.theta_stack_,
-            gee_cov_stack=self.gee_cov_stack_,
+            cov_est_stack=self.cov_est_stack_,
         )
         self.alpha_ = aggregates["alpha"]
         self.theta_ = aggregates["theta"]
         self.cov_ = aggregates["cov"]
-        self.gee_cov_ = aggregates["gee_cov"]
+        self.cov_est_ = aggregates["cov_est"]
         self.is_fitted = True
         return self
 

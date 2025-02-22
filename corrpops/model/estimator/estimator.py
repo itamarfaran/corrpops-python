@@ -5,7 +5,7 @@ import numpy as np
 
 from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
-from model.estimator.gee_covariance import GeeCovarianceEstimator
+from model.estimator.covariance import CovarianceEstimator, GeeCovarianceEstimator
 from model.estimator.optimizer import (
     CorrPopsOptimizer,
     CorrPopsOptimizerResults,
@@ -29,10 +29,10 @@ class CorrPopsEstimator:
         *,
         optimizer: Optional[CorrPopsOptimizer] = None,
         naive_optimizer: Union[CorrPopsOptimizer, Literal["skip"], None] = None,
-        gee_estimator: Optional[GeeCovarianceEstimator] = None,
+        covariance_estimator: Optional[CovarianceEstimator] = None,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
         naive_optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        gee_estimator_kwargs: Optional[Dict[str, Any]] = None,
+        covariance_estimator_kwargs: Optional[Dict[str, Any]] = None,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if optimizer is None:
@@ -59,15 +59,19 @@ class CorrPopsEstimator:
         else:
             self.naive_optimizer = naive_optimizer
 
-        if gee_estimator is None:
-            gee_estimator_kwargs = gee_estimator_kwargs or {}
-            self.gee_estimator = GeeCovarianceEstimator(**gee_estimator_kwargs)
-        elif gee_estimator_kwargs:
+        if covariance_estimator is None:
+            covariance_estimator_kwargs = covariance_estimator_kwargs or {}
+            self.covariance_estimator = GeeCovarianceEstimator(
+                **covariance_estimator_kwargs
+            )
+        elif covariance_estimator_kwargs:
             raise ValueError(
-                _init_value_error_msg.format("gee_estimator", "GeeCovarianceEstimator")
+                _init_value_error_msg.format(
+                    "covariance_estimator", "CovarianceEstimator"
+                )
             )
         else:
-            self.gee_estimator = gee_estimator
+            self.covariance_estimator = covariance_estimator
 
         self.link_function = link_function
         self.dim_alpha = dim_alpha
@@ -83,17 +87,26 @@ class CorrPopsEstimator:
     @classmethod
     def from_json(
         cls,
-        link_function: BaseLinkFunction,
         json_: Dict[str, Dict[str, Dict[str, Any]]],
+        link_function: BaseLinkFunction,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ):
         if "params" in json_:
+            covariance_estimator_kwargs = json_["params"]["covariance_estimator"].copy()
+            if (
+                covariance_estimator_kwargs.pop("name")
+                != GeeCovarianceEstimator.__name__
+            ):
+                raise ValueError(
+                    "currently only GeeCovarianceEstimator supported in from_json"
+                )
+
             estimator = cls(
                 link_function=link_function,
                 optimizer=CorrPopsOptimizer(**json_["params"]["optimizer"]),
                 naive_optimizer=CorrPopsOptimizer(**json_["params"]["naive_optimizer"]),
-                gee_estimator=GeeCovarianceEstimator(
-                    **json_["params"]["gee_estimator"]
+                covariance_estimator=GeeCovarianceEstimator(
+                    **covariance_estimator_kwargs
                 ),
                 non_positive=non_positive,
             )
@@ -114,9 +127,9 @@ class CorrPopsEstimator:
                 estimator.naive_optimizer_results_ = CorrPopsOptimizerResults.from_json(
                     json_["results"]["naive_optimizer"]
                 )
-            if "gee_estimator" in json_["results"]:
+            if "covariance_estimator" in json_["results"]:
                 estimator.cov_ = vector_to_triangle(
-                    np.array(json_["results"]["gee_estimator"]["cov"]), diag=True
+                    np.array(json_["results"]["covariance_estimator"]["cov"]), diag=True
                 )
         return estimator
 
@@ -134,8 +147,8 @@ class CorrPopsEstimator:
                 "naive_optimizer": self.naive_optimizer.get_params()
                 if self.naive_optimizer
                 else {},
-                "gee_estimator": self.gee_estimator.get_params()
-                if self.gee_estimator
+                "covariance_estimator": self.covariance_estimator.get_params()
+                if self.covariance_estimator
                 else {},
             }
 
@@ -151,7 +164,7 @@ class CorrPopsEstimator:
                 ] = self.naive_optimizer_results_.to_json()
 
             if self.cov_ is not None:
-                json_["results"]["gee_estimator"] = {
+                json_["results"]["covariance_estimator"] = {
                     "cov": triangle_to_vector(self.cov_, diag=True).tolist()
                 }
 
@@ -206,7 +219,7 @@ class CorrPopsEstimator:
 
     def compute_covariance(self, control_arr: np.ndarray, diagnosed_arr: np.ndarray):
         try:
-            self.cov_ = self.gee_estimator.compute(
+            self.cov_ = self.covariance_estimator.compute(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=self.link_function,
@@ -214,7 +227,7 @@ class CorrPopsEstimator:
                 non_positive=self.non_positive,
             )
         except ValueError:
-            self.cov_ = self.gee_estimator.compute(
+            self.cov_ = self.covariance_estimator.compute(
                 control_arr=triangle_to_vector(control_arr),
                 diagnosed_arr=triangle_to_vector(diagnosed_arr),
                 link_function=self.link_function,

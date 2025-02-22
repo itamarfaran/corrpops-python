@@ -73,8 +73,8 @@ else:
 
 
 new_model = CorrPopsEstimator.from_json(
-    model.link_function,
     new_model_json,
+    model.link_function,
     non_positive="warn",
 ).compute_covariance(control, diagnosed)
 

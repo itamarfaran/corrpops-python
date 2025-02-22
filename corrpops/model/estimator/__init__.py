@@ -1,5 +1,5 @@
 from .estimator import CorrPopsEstimator
-from .gee_covariance import GeeCovarianceEstimator
+from .covariance import GeeCovarianceEstimator
 from .jackknife import CorrPopsJackknifeEstimator
 from .optimizer import CorrPopsOptimizer, CorrPopsOptimizerResults
 

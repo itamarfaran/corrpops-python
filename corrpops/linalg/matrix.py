@@ -4,6 +4,10 @@ import numpy as np
 from scipy import linalg
 
 
+def sqrt_diag(a: np.ndarray):
+    return np.sqrt(np.diagonal(a, axis1=-2, axis2=-1))
+
+
 def matrix_power(arr: np.ndarray, power: float) -> np.ndarray:
     w, v = linalg.eigh(arr)
     w = np.eye(len(w)) * w**power
@@ -18,9 +22,6 @@ def fill_other_triangle(arr):
 
 
 def force_symmetry(arr):
-    row, col = np.diag_indices(arr.shape[-1])
-    diag = np.zeros_like(arr)
-    diag[..., row, col] = arr[..., row, col]
     return (arr + np.swapaxes(arr, -1, -2)) / 2
 
 

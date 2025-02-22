@@ -161,6 +161,7 @@ class CorrPopsEstimator:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
+        *,
         compute_cov: bool = True,
     ):
         # todo: add logging

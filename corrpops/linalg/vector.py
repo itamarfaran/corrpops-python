@@ -3,12 +3,12 @@ from scipy import linalg
 
 
 def mahalanobis(
-    x,
-    y=None,
-    m=None,
-    solve=True,
-    sqrt=True,
-):
+    x: np.ndarray,
+    y: np.ndarray = None,
+    m: np.ndarray = None,
+    solve: bool = True,
+    sqrt: bool = True,
+) -> float:
     if y is not None:
         x = x - y
     x = np.atleast_2d(x)
@@ -22,8 +22,10 @@ def mahalanobis(
 
     if sqrt:
         out = np.sqrt(out)
-    return out
+    return float(out)
 
 
-def norm_p(x, y, p):
-    return np.sum(np.abs(x - y) ** p) ** (1 / p)
+def norm_p(x: np.ndarray, y: np.ndarray = None, p: float = 2) -> float:
+    if y is not None:
+        x = x - y
+    return float(np.sum(np.abs(x) ** p) ** (1 / p))

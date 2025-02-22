@@ -6,10 +6,12 @@ from linalg.matrix import fill_other_triangle
 def triangle_to_vector(
     arr: np.ndarray,
     diag: bool = False,
+    check: bool = False,
 ) -> np.ndarray:
     if arr.shape[-2] != arr.shape[-1]:
         raise IndexError(f"array is not square ({arr.shape[-2]} != {arr.shape[-1]}")
-
+    if check and not np.allclose(arr, np.swapaxes(arr, -1, -2)):
+        raise ValueError("arr is not symmetric")
     row, col = np.tril_indices(arr.shape[-1], 0 if diag else -1)
     return arr[..., row, col]
 
@@ -20,12 +22,12 @@ def vector_to_triangle(
     diag_value: float = np.nan,
 ) -> np.ndarray:
     p = 0.5 * ((-1 if diag else 1) + np.array((-1, 1)) * np.sqrt(1 + 8 * arr.shape[-1]))
-    p = p[(p == np.round(p)) & (p == np.abs(p))]
+    p = p[np.allclose(p, p.astype(int)) & (p > 0)]
     if len(p) == 1:
         p = int(p[0])
     else:
         raise IndexError(
-            f"array shape ({arr.shape[-1]}) does " f"not fit size of triangular matrix"
+            f"array shape ({arr.shape[-1]}) does not fit size of triangular matrix"
         )
 
     out = np.zeros(arr.shape[:-1] + (p, p))

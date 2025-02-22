@@ -94,6 +94,7 @@ class CorrPopsJackknifeEstimator:
     def __init__(
         self,
         base_estimator: CorrPopsEstimator,
+        *,
         jack_control: bool = True,
         steps_back: int = 3,
         use_ray: bool = False,

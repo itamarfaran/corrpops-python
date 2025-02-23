@@ -1,3 +1,5 @@
+import logging
+import warnings
 from collections import namedtuple
 from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict
 
@@ -18,6 +20,10 @@ from model.estimator.covariance import GeeCovarianceEstimator
 from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction
 from model.estimator.optimizer import CorrPopsOptimizer
+
+logger = logging.getLogger("corrpops")
+logging.basicConfig(level=logging.INFO)
+
 
 JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",
@@ -276,10 +282,13 @@ class CorrPopsJackknifeEstimator:
         for index in range(diagnosed_arr.shape[0]):
             current = _jackknife_single(index, True, *args)
             results.append(current)
+            print("+", end="")
         if self.jack_control:
             for index in range(control_arr.shape[0]):
                 current = _jackknife_single(index, False, *args)
                 results.append(current)
+                print("+", end="")
+        print("")
         return results
 
     def _get_jackknife_ray(
@@ -334,6 +343,7 @@ class CorrPopsJackknifeEstimator:
         ray_options: Optional[Dict[str, Any]] = None,
     ):
         if self.base_estimator.optimizer_results_ is None:
+            logger.info("jackknife:fit: run base_estimator.fit")
             self.base_estimator.fit(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
@@ -345,6 +355,10 @@ class CorrPopsJackknifeEstimator:
             alpha0 = steps[-self.steps_back - 1]["alpha"]
             theta0 = steps[-self.steps_back - 1]["theta"]
         else:
+            warnings.warn(
+                f"not enough steps in base_estimator optimizer results "
+                f"({len(steps)} < {self.steps_back}). taking last step instead"
+            )
             alpha0 = self.base_estimator.alpha_
             theta0 = self.base_estimator.theta_
 
@@ -353,6 +367,7 @@ class CorrPopsJackknifeEstimator:
             non_positive=self.non_positive,
         )
 
+        logger.info("jackknife:fit: starting jackknife procedure")
         if self.use_ray:
             results = self._get_jackknife_ray(
                 control_arr=triangle_to_vector(control_arr),

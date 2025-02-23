@@ -1,4 +1,5 @@
 import copy
+import logging
 from typing import Any, Dict, Optional, Union, Literal
 
 import numpy as np
@@ -12,6 +13,10 @@ from model.estimator.optimizer import (
 )
 from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction, MultiplicativeIdentity
+
+logger = logging.getLogger("corrpops")
+logging.basicConfig(level=logging.INFO)
+
 
 _init_value_error_msg = (
     "cannot pass both an instantiated {0} and non-empty {0}_kwargs. "
@@ -177,7 +182,6 @@ class CorrPopsEstimator:
         *,
         compute_cov: bool = True,
     ):
-        # todo: add logging
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
@@ -189,6 +193,7 @@ class CorrPopsEstimator:
             alpha0 = None
             theta0 = None
         else:
+            logger.info("estimator:fit: run naive_optimizer.optimize")
             naive_optimizer_results = self.naive_optimizer.optimize(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
@@ -198,6 +203,7 @@ class CorrPopsEstimator:
             alpha0 = naive_optimizer_results.alpha
             theta0 = naive_optimizer_results.theta
 
+        logger.info("estimator:fit: run optimizer.optimize")
         self.optimizer_results_ = self.optimizer.optimize(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
@@ -211,7 +217,8 @@ class CorrPopsEstimator:
         self.theta_ = self.optimizer_results_.theta
         self.is_fitted = True
 
-        if compute_cov:
+        if compute_cov and self.covariance_estimator is not None:
+            logger.info("estimator:fit: run covariance_estimator.compute")
             self.compute_covariance(
                 control_arr=control_arr, diagnosed_arr=diagnosed_arr
             )

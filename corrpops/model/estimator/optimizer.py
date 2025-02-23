@@ -272,7 +272,7 @@ class CorrPopsOptimizer:
         stop = False
         start_time = datetime.now()
 
-        self._log(f"optimize: start ({start_time})")
+        self._log(f"optimizer:optimize: start ({start_time})")
 
         for i in range(self.max_iter):
             last_start_time = datetime.now()
@@ -330,7 +330,7 @@ class CorrPopsOptimizer:
             stop = stop and i > self.min_iter
 
             self._log(
-                f"optimize: iteration {i} "
+                f"optimizer:optimize: iteration {i} "
                 f"(elapsed: {(datetime.now() - start_time).seconds}s, "
                 f"current: {(datetime.now() - last_start_time).seconds}s, "
                 f"status: {steps[-1]['status']}, "
@@ -362,7 +362,9 @@ class CorrPopsOptimizer:
 
         total_time = datetime.now() - start_time
         self._log(
-            f"optimize: end ({datetime.now()}) | iterations: {len(steps)}, total time: {format_time_delta(total_time)}"
+            f"optimizer:optimize: end ({datetime.now()}) | "
+            f"iterations: {len(steps)}, "
+            f"total time: {format_time_delta(total_time)}"
         )
 
         return CorrPopsOptimizerResults(

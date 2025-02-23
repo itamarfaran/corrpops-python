@@ -5,6 +5,7 @@ import os
 import numpy as np
 import ray
 
+from corrpops.linalg.triangle_vector import triangle_to_vector
 from corrpops.model.estimator import CorrPopsEstimator, CorrPopsJackknifeEstimator
 from corrpops.model.link_functions import MultiplicativeIdentity
 from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
@@ -53,6 +54,14 @@ if __name__ == "__main__":
         diagnosed_ma=(0.5, 0.1),
         size=20,
         random_state=RNG,
+    )
+
+    np.savez_compressed(
+        f"{RESULTS_DIR}/parameters.npz",
+        theta=triangle_to_vector(theta),
+        alpha=alpha.flatten(),
+        control=triangle_to_vector(control),
+        diagnosed=triangle_to_vector(diagnosed),
     )
 
     try:

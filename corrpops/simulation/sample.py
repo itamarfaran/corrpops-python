@@ -13,7 +13,8 @@ def build_parameters(
     p: int,
     percent_alpha: float,
     alpha_min: float,
-    alpha_max: float = 1,
+    alpha_max: float = 1.0,
+    alpha_null: float = 1.0,
     dim_alpha: int = 1,
     theta_loc: float = 0.0,
     theta_scale: float = 1.0,
@@ -35,7 +36,7 @@ def build_parameters(
     n_non_null_alphas = int(percent_alpha * p)
     non_null_alphas = rng.choice(p, n_non_null_alphas, replace=False)
 
-    alpha_row_sums = np.ones(p)
+    alpha_row_sums = np.full(p, alpha_null)
     alpha_row_sums[non_null_alphas] = stats.uniform.rvs(
         loc=alpha_min,
         scale=alpha_max - alpha_min,

@@ -100,7 +100,3 @@ def test_mahalanobis():
         vector.mahalanobis(x, y, np.eye(10), solve=True),
         vector.norm_p(x, y),
     )
-
-
-
-

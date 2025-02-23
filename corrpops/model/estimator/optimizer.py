@@ -186,7 +186,7 @@ class CorrPopsOptimizer:
         link_function: BaseLinkFunction,
         dim_alpha: int,
         status: int,
-        optimize_results: optimize.OptimizeResult,
+        optimize_results: Union[optimize.OptimizeResult, dict],
     ):
         if not self.save_optimize_results:
             optimize_results = {}

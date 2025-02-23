@@ -1,6 +1,3 @@
-# todo: refactor with numpy.typing: https://numpy.org/devdocs/reference/typing.html#api
-
-
 # print(
 #     '\033[93m'
 #     'corrpops logs and writes progress to stdout.\n'

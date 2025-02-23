@@ -11,7 +11,7 @@ def efron_bias_correction(rms: Union[float, int], p: Union[float, int]) -> float
 
 def efron_rms_sample(
     arr: np.ndarray, p: Optional[Union[float, int]] = None
-) -> np.ndarray:
+) -> float:
     rms_mean = np.mean(
         np.sqrt(
             np.mean(

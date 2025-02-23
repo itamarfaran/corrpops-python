@@ -29,7 +29,7 @@ def update_amnesia(root: Path):
 
 
 def update_nmda(root: Path):
-    path = root.joinpath("data", "ndma_aal_all.mat")
+    path = root.joinpath("data", "nmda_aal_all.mat")
 
     results = matlab_to_dict(
         path=path,

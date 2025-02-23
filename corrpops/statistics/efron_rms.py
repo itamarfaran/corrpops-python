@@ -26,7 +26,7 @@ def efron_rms_sample(
     return rms_mean
 
 
-def efron_rms(arr: np.ndarray, p: Union[float, int] = None) -> float:
+def efron_rms(arr: np.ndarray, p: Union[float, int, None] = None) -> float:
     if arr.shape[-2] != arr.shape[-1]:
         raise ValueError("m is not square")
 

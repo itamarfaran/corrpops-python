@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -11,7 +11,7 @@ class Transformer:
         self,
         func: Callable[[Union[float, np.ndarray]], Union[float, np.ndarray]],
         inverse_func: Callable[[Union[float, np.ndarray]], Union[float, np.ndarray]],
-        name: str = None,
+        name: Optional[str] = None,
     ):
         self.func = func
         self.inverse_func = inverse_func
@@ -28,8 +28,8 @@ class BaseLinkFunction(ABC):
     name_: str
     null_value_: float
 
-    def __init__(self, transformer: Transformer = None):
-        self.transformer = transformer or Transformer(lambda x: x, lambda x: x, "")
+    def __init__(self, transformer: Optional[Transformer] = None):
+        self.transformer = transformer or Transformer(lambda x: x, lambda x: x)
         self._validate_transformer()
 
     def _validate_transformer(self):

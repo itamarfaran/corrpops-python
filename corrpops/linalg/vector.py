@@ -1,11 +1,13 @@
+from typing import Optional
+
 import numpy as np
 from scipy import linalg
 
 
 def mahalanobis(
     x: np.ndarray,
-    y: np.ndarray = None,
-    m: np.ndarray = None,
+    y: Optional[np.ndarray] = None,
+    m: Optional[np.ndarray] = None,
     solve: bool = True,
     sqrt: bool = True,
 ) -> float:
@@ -25,7 +27,7 @@ def mahalanobis(
     return float(out)
 
 
-def norm_p(x: np.ndarray, y: np.ndarray = None, p: float = 2) -> float:
+def norm_p(x: np.ndarray, y: Optional[np.ndarray] = None, p: float = 2) -> float:
     if y is not None:
         x = x - y
     return float(np.sum(np.abs(x) ** p) ** (1 / p))

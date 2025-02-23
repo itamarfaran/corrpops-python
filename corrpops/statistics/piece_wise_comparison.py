@@ -19,7 +19,7 @@ from linalg.triangle_vector import triangle_to_vector
 def piece_wise_comparison(
     control: np.ndarray,
     diagnosed: np.ndarray,
-    p_adjust_method: str = None,
+    p_adjust_method: str = "bonferroni",
     alternative: Literal["two-sided", "smaller", "larger"] = "two-sided",
 ) -> Dict[str, np.ndarray]:
     if control.ndim == 3:

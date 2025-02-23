@@ -19,7 +19,7 @@ from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction
 from model.estimator.optimizer import CorrPopsOptimizer
 
-_JackknifeConstantArgs = namedtuple(
+JackknifeConstantArgs = namedtuple(
     "JackknifeConstantArgs",
     [
         "optimizer",
@@ -34,7 +34,7 @@ _JackknifeConstantArgs = namedtuple(
 )
 
 
-class _JackknifeResult(TypedDict):
+class JackknifeResult(TypedDict):
     theta: np.ndarray
     alpha: np.ndarray
     status: int
@@ -52,7 +52,7 @@ def _jackknife_single(
     alpha0: np.ndarray,
     theta0: np.ndarray,
     covariance_estimator: Optional[GeeCovarianceEstimator],
-) -> _JackknifeResult:
+) -> JackknifeResult:
     if drop_in_diagnosed:
         diagnosed_arr = np.delete(diagnosed_arr, index_to_drop, axis=0)
         weights, _ = average_covariance_of_correlation(
@@ -258,8 +258,8 @@ class CorrPopsJackknifeEstimator:
         theta0: np.ndarray,
         weights: np.ndarray,
         compute_cov: bool,
-    ) -> List[_JackknifeResult]:
-        args = _JackknifeConstantArgs(
+    ) -> List[JackknifeResult]:
+        args = JackknifeConstantArgs(
             optimizer=self.base_estimator.optimizer,
             link_function=self.base_estimator.link_function,
             control_arr=control_arr,
@@ -290,8 +290,8 @@ class CorrPopsJackknifeEstimator:
         theta0: np.ndarray,
         weights: np.ndarray,
         compute_cov: bool,
-        ray_options: dict[str, Any],
-    ) -> List[_JackknifeResult]:
+        ray_options: Optional[Dict[str, Any]],
+    ) -> List[JackknifeResult]:
         if not _ray_installed:
             raise ModuleNotFoundError(
                 "missing optional dependency ray. "
@@ -302,7 +302,7 @@ class CorrPopsJackknifeEstimator:
         options.update(ray_options or {})
         _jackknife_remote = ray.remote(_jackknife_single).options(**options)
 
-        args = _JackknifeConstantArgs(
+        args = JackknifeConstantArgs(
             optimizer=ray.put(self.base_estimator.optimizer),
             link_function=ray.put(self.base_estimator.link_function),
             control_arr=ray.put(control_arr),
@@ -397,7 +397,7 @@ class CorrPopsJackknifeEstimator:
 
     def inference(
         self,
-        p_adjust_method: Optional[str] = None,
+        p_adjust_method: str = "bonferroni",
         alternative: Literal["two-sided", "smaller", "larger"] = "two-sided",
         sig_level: float = 0.05,
         std_const: float = 1.0,

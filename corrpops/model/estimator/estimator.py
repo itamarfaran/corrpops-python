@@ -238,7 +238,7 @@ class CorrPopsEstimator:
 
     def inference(
         self,
-        p_adjust_method: Optional[str] = None,
+        p_adjust_method: str = "bonferroni",
         alternative: Literal["two-sided", "smaller", "larger"] = "two-sided",
         sig_level: float = 0.05,
         std_const: float = 1.0,

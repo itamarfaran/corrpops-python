@@ -2,7 +2,7 @@ import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 import numpy as np
 from scipy import linalg, optimize
@@ -12,6 +12,14 @@ from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
+
+
+class StepDict(TypedDict):
+    theta: np.ndarray
+    alpha: np.ndarray
+    value: float
+    status: int
+    optimize_results: Union[dict, optimize.OptimizeResult]
 
 
 @dataclass
@@ -154,15 +162,12 @@ class CorrPopsOptimizer:
         link_function: BaseLinkFunction,
         dim_alpha: int,
         status: int,
-        optimize_results: Optional[Dict[str, Any]] = None,
+        optimize_results: optimize.OptimizeResult,
     ):
-        if self.save_optimize_results:
-            if optimize_results is None:
-                raise NameError
-        else:
+        if not self.save_optimize_results:
             optimize_results = {}
 
-        step = {
+        step: StepDict = {
             "theta": theta,
             "alpha": alpha,
             "value": sum_of_squares(
@@ -228,7 +233,7 @@ class CorrPopsOptimizer:
         else:
             inv_cov = None
 
-        steps = []
+        steps: List[StepDict] = []
         self.update_steps(
             steps=steps,
             theta=theta,

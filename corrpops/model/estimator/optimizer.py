@@ -1,6 +1,7 @@
+import logging
 import warnings
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
@@ -12,6 +13,25 @@ from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
+
+logger = logging.getLogger("corrpops")
+logging.basicConfig(level=logging.INFO)
+
+
+def format_time_delta(time_delta: timedelta) -> str:
+    times = {
+        "hours": str(time_delta.seconds // 3_600),
+        "minutes": str(time_delta.seconds // 60),
+        "seconds": str(time_delta.seconds // 60 % 60),
+    }
+    for k, v in times.items():
+        if len(v) == 1:
+            times[k] = "0" + v
+
+    out = f"{times['minutes']}:{times['seconds']}"
+    if times["hours"] != "00":
+        out = f"{times['hours']}:{out}"
+    return out
 
 
 class StepDict(TypedDict):
@@ -128,6 +148,10 @@ class CorrPopsOptimizer:
         )
         if not all(is_positive_definite_):
             warnings.warn("initial parameters dont yield positive-definite matrices")
+
+    @property
+    def _log(self):
+        return logger.info if self.verbose else logger.debug
 
     def get_params(self) -> Dict[str, Any]:
         return {
@@ -248,13 +272,10 @@ class CorrPopsOptimizer:
         stop = False
         start_time = datetime.now()
 
-        if self.verbose:
-            print(
-                f"Time of initialization: {start_time}; "
-                f"Progress: 'Loop, (Time, Status, Distance)'"
-            )
+        self._log(f"optimize: start ({start_time})")
 
         for i in range(self.max_iter):
+            last_start_time = datetime.now()
             if (
                 self.minimize_kwargs.get("method", "") != "TNC"
                 and self.adaptive_maxiter
@@ -308,13 +329,13 @@ class CorrPopsOptimizer:
                 )
             stop = stop and i > self.min_iter
 
-            if self.verbose:
-                print(
-                    f"{i} "
-                    f"({(datetime.now() - start_time).seconds}s, "
-                    f"{steps[-1]['status']}, "
-                    f"{np.round(distance, 5)})"
-                )
+            self._log(
+                f"optimize: iteration {i} "
+                f"(elapsed: {(datetime.now() - start_time).seconds}s, "
+                f"current: {(datetime.now() - last_start_time).seconds}s, "
+                f"status: {steps[-1]['status']}, "
+                f" distance: {np.round(distance, 5)})"
+            )
 
             if stop:
                 for j in range(self.min_iter):
@@ -339,11 +360,10 @@ class CorrPopsOptimizer:
         if not stop:
             warnings.warn("optimization reached maximum iterations")
 
-        if self.verbose:
-            total_time = datetime.now() - start_time
-            print(
-                f"total time: {total_time.seconds // 60} minutes and {total_time.seconds} seconds"
-            )
+        total_time = datetime.now() - start_time
+        self._log(
+            f"optimize: end ({datetime.now()}) | iterations: {len(steps)}, total time: {format_time_delta(total_time)}"
+        )
 
         return CorrPopsOptimizerResults(
             theta=theta,

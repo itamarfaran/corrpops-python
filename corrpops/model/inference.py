@@ -1,3 +1,4 @@
+import warnings
 from collections import namedtuple
 from typing import Dict, Literal, Optional
 
@@ -126,6 +127,9 @@ def wilks_test(
     except ValueError as ex:
         if "positive semidefinite" not in str(ex):
             raise ex
+        warnings.warn(
+            "covariance matrix is not symmetric positive semidefinite, returning nan"
+        )
         full_log_likelihood = null_log_likelihood = np.nan
 
     chi2_val = 2 * (full_log_likelihood - null_log_likelihood)

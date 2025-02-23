@@ -4,15 +4,10 @@ import json
 import numpy as np
 import pandas as pd
 
-from data.loaders import load_data
-from data.preproccessing import preprocess
-from model import link_functions
-from model.estimator import (
-    CorrPopsEstimator,
-    CorrPopsJackknifeEstimator,
-    CorrPopsOptimizer,
-)
-from simulation.sample import build_parameters, create_samples_from_parameters
+from corrpops.data.loaders import load_data
+from corrpops.data.preproccessing import preprocess
+from corrpops.model import estimator, link_functions
+from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
 
 REAL_DATA: bool = False
 JACKKNIFE: bool = True
@@ -50,11 +45,11 @@ else:
     control, diagnosed = control[0], diagnosed[0]
 
 
-model = CorrPopsEstimator(
+model = estimator.CorrPopsEstimator(
     link_function=link_functions.MultiplicativeIdentity(
         transformer=link_functions.Transformer(np.log, np.exp)
     ),
-    optimizer=CorrPopsOptimizer(
+    optimizer=estimator.CorrPopsOptimizer(
         mat_reg_const=0.1,
         early_stop=True,
         verbose=True,
@@ -64,15 +59,15 @@ model = CorrPopsEstimator(
 model.fit(control, diagnosed, compute_cov=False)
 
 if REAL_DATA:
-    with gzip.open("tga_aal.json.gz", "w") as f:
+    with gzip.open("../tga_aal.json.gz", "w") as f:
         f.write(json.dumps(model.to_json()).encode("utf-8"))
-    with gzip.open("tga_aal.json.gz", "r") as f:
+    with gzip.open("../tga_aal.json.gz", "r") as f:
         new_model_json = json.loads(f.read().decode("utf-8"))
 else:
     new_model_json = model.to_json()
 
 
-new_model = CorrPopsEstimator.from_json(
+new_model = estimator.CorrPopsEstimator.from_json(
     new_model_json,
     model.link_function,
     non_positive="warn",
@@ -89,13 +84,13 @@ print(gee_inference)
 print(gee_wilks_score)
 
 if JACKKNIFE:
-    _ = CorrPopsJackknifeEstimator(
+    _ = estimator.CorrPopsJackknifeEstimator(
         new_model,
         use_ray=True,
     ).fit(control, diagnosed, compute_cov=True)
 
-    jackknife_model = CorrPopsJackknifeEstimator(
-        CorrPopsEstimator(optimizer_kwargs={"verbose": False}),
+    jackknife_model = estimator.CorrPopsJackknifeEstimator(
+        estimator.CorrPopsEstimator(optimizer_kwargs={"verbose": False}),
         use_ray=False,
     ).fit(control, diagnosed)
 

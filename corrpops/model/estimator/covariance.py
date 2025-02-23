@@ -67,6 +67,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         expected_value: np.ndarray,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ) -> _GeeProperties:
+        # todo: migrate to scipy.differentiate.jacobian (1.15.0)
         jacobian = optimize.approx_fprime(optimizer_results.alpha, jacobian_func)
 
         cov, _ = average_covariance_of_correlation(

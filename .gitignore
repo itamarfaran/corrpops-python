@@ -1,6 +1,6 @@
-/.idea*
-/corrpops/tga_aal.npz
-/corrpops/nmda_aal.npz
-/data/amnesia_aal_all.mat
-/data/ndma_aal_all.mat
+/corrpops/data/.files/
+/data/*.mat
+/scripts/python/bootstraps/
+/scripts/python/jackknife_bootstraps/
+**/.idea
 *.coverage

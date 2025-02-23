@@ -15,6 +15,8 @@ def download_data(dst: Path):
         + dst.name
     )
     warnings.warn(f"downloading {dst.name} from corrpops-python github repo")
+    if not dst.parent.exists():
+        dst.parent.mkdir()
     urllib.request.urlretrieve(src, dst)
 
 
@@ -29,10 +31,10 @@ def load_data(
         "tta_aal",
     ]
 ) -> Dict[str, np.ndarray]:
-    path = Path(__file__).parent.with_name(data_name).with_suffix(".npz")
-    if not path.exists():
-        download_data(path)
-    data = np.load(path)
+    dst = Path(__file__).parent.joinpath(".files", data_name).with_suffix(".npz")
+    if not dst.exists():
+        download_data(dst)
+    data = np.load(dst)
 
     return {
         "header": data["header"],

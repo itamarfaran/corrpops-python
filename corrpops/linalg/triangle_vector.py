@@ -26,7 +26,7 @@ def triangle_to_vector(
     check: bool = False,
 ) -> np.ndarray:
     if a.shape[-2] != a.shape[-1]:
-        raise IndexError(f"array is not square ({a.shape[-2]} != {a.shape[-1]}")
+        raise ValueError(f"array is not square ({a.shape[-2]} != {a.shape[-1]}")
     if check and not np.allclose(a, np.swapaxes(a, -1, -2)):
         raise ValueError("a is not symmetric")
     row, col = np.tril_indices(a.shape[-1], 0 if diag else -1)

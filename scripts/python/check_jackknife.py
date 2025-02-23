@@ -1,14 +1,14 @@
-import os
 import gzip
 import json
+import os
+
 import numpy as np
 import ray
 
-from corrpops.statistics.arma import is_invertible_arma
-from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
-from corrpops.model.link_functions import MultiplicativeIdentity
 from corrpops.model.estimator import CorrPopsEstimator, CorrPopsJackknifeEstimator
-
+from corrpops.model.link_functions import MultiplicativeIdentity
+from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
+from corrpops.statistics.arma import is_invertible_arma
 
 RNG = np.random.default_rng(237)
 RESULTS_DIR = "jackknife_bootstraps"
@@ -17,7 +17,7 @@ if not os.path.isdir(RESULTS_DIR):
 
 
 @ray.remote
-def _jackknife(i_, control_, diagnosed_):
+def _jackknife(i_: int, control_: np.ndarray, diagnosed_: np.ndarray):
     estimator = CorrPopsJackknifeEstimator(
         CorrPopsEstimator(optimizer_kwargs={"verbose": False}),
     ).fit(control_, diagnosed_, compute_cov=True)

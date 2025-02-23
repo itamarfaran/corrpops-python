@@ -6,7 +6,7 @@ from corrpops.data.preproccessing import matlab_to_dict
 from corrpops.linalg.triangle_vector import triangle_to_vector
 
 
-def get_root_directory():
+def get_root_directory() -> Path:
     path = Path(__file__)
     while path.name != "corrpops-python":
         path = path.parent
@@ -25,12 +25,10 @@ def update_amnesia(root: Path):
         )
         results["control"] = triangle_to_vector(results["control"])
         results["diagnosed"] = triangle_to_vector(results["diagnosed"])
-        np.savez_compressed(
-            root.joinpath("data", f"{key.lower()}_aal.npz"), **results
-        )
+        np.savez_compressed(root.joinpath("data", f"{key.lower()}_aal.npz"), **results)
 
 
-def update_nmda(root):
+def update_nmda(root: Path):
     path = root.joinpath("data", "ndma_aal_all.mat")
 
     results = matlab_to_dict(

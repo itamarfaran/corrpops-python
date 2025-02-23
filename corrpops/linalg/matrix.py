@@ -4,7 +4,7 @@ import numpy as np
 from scipy import linalg
 
 
-def sqrt_diag(a: np.ndarray):
+def sqrt_diag(a: np.ndarray) -> np.ndarray:
     return np.sqrt(np.diagonal(a, axis1=-2, axis2=-1))
 
 
@@ -14,18 +14,18 @@ def matrix_power(a: np.ndarray, power: float) -> np.ndarray:
     return v @ w @ v.T
 
 
-def fill_other_triangle(a):
+def fill_other_triangle(a: np.ndarray) -> np.ndarray:
     row, col = np.diag_indices(a.shape[-1])
     diag = np.zeros_like(a)
     diag[..., row, col] = a[..., row, col]
     return a + np.swapaxes(a, -1, -2) - diag
 
 
-def force_symmetry(a):
+def force_symmetry(a: np.ndarray) -> np.ndarray:
     return (a + np.swapaxes(a, -1, -2)) / 2
 
 
-def is_positive_definite(a):
+def is_positive_definite(a: np.ndarray) -> np.ndarray:
     def _check(a_):
         if np.allclose(a_, a_.T):
             try:
@@ -71,7 +71,7 @@ def regularize_matrix(
         raise ValueError
 
 
-def cov_to_corr(a):
+def cov_to_corr(a: np.ndarray) -> np.ndarray:
     row, col = np.diag_indices(a.shape[-1])
     diagonals = np.sqrt(a[..., row, col])
     return a / (diagonals[..., None, :] * diagonals[..., :, None])

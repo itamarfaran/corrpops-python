@@ -1,12 +1,13 @@
 import warnings
 from pathlib import Path
+from typing import Dict, Literal
 
 import numpy as np
 
 from linalg.triangle_vector import vector_to_triangle
 
 
-def download_data(dst):
+def download_data(dst: Path):
     import urllib.request
 
     src = (
@@ -17,7 +18,17 @@ def download_data(dst):
     urllib.request.urlretrieve(src, dst)
 
 
-def load_data(data_name):
+def load_data(
+    data_name: Literal[
+        "nmda_aal",
+        "tda_aal",
+        "tea_aal",
+        "tga_aal",
+        "tiavca_aal",
+        "tma_aal",
+        "tta_aal",
+    ]
+) -> Dict[str, np.ndarray]:
     path = Path(__file__).parent.with_name(data_name).with_suffix(".npz")
     if not path.exists():
         download_data(path)

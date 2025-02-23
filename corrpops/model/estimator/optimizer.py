@@ -121,7 +121,7 @@ class CorrPopsOptimizer:
         if not all(is_positive_definite_):
             warnings.warn("initial parameters dont yield positive-definite matrices")
 
-    def get_params(self):
+    def get_params(self) -> Dict[str, Any]:
         return {
             "rel_tol": self.rel_tol,
             "abs_tol": self.abs_tol,

@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -12,7 +12,7 @@ from model.link_functions import BaseLinkFunction, Transformer
     BaseLinkFunction.__subclasses__(),
 )
 def test_link_function(
-    parameters_and_sample,
+    parameters_and_sample: Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
     link_function_class: Callable[[Optional[Transformer]], BaseLinkFunction],
 ):
     link_function = link_function_class(None)

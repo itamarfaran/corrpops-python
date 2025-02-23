@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 
@@ -9,18 +9,18 @@ from linalg.triangle_vector import vector_to_triangle, triangle_to_vector
 class Transformer:
     def __init__(
         self,
-        func: Callable,
-        inverse_func: Callable,
+        func: Callable[[Union[float, np.ndarray]], Union[float, np.ndarray]],
+        inverse_func: Callable[[Union[float, np.ndarray]], Union[float, np.ndarray]],
         name: str = None,
     ):
         self.func = func
         self.inverse_func = inverse_func
         self.name_ = name or func.__name__
 
-    def transform(self, *args, **kwargs):
+    def transform(self, *args, **kwargs) -> Union[float, np.ndarray]:
         return self.func(*args, **kwargs)
 
-    def inverse_transform(self, *args, **kwargs):
+    def inverse_transform(self, *args, **kwargs) -> Union[float, np.ndarray]:
         return self.inverse_func(*args, **kwargs)
 
 
@@ -41,7 +41,7 @@ class BaseLinkFunction(ABC):
             )
 
     @property
-    def name(self):
+    def name(self) -> str:
         return (
             f"{self.name_}_{self.transformer.name_}"
             if self.transformer.name_
@@ -49,22 +49,22 @@ class BaseLinkFunction(ABC):
         )
 
     @property
-    def null_value(self):
+    def null_value(self) -> float:
         return self.transformer.inverse_transform(self.null_value_)
 
     def check_name_equal(self, name: str):
         if name != self.name:
             raise ValueError("link function mismatch")
 
-    def __call__(self, *, t, a, d):
+    def __call__(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         return self.forward(t=t, a=a, d=d)
 
     @abstractmethod
-    def forward(self, *, t, a, d):
+    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         pass
 
     @abstractmethod
-    def inverse(self, *, data, a, d):
+    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         pass
 
 
@@ -72,14 +72,14 @@ class MultiplicativeIdentity(BaseLinkFunction):
     name_ = "multiplicative_identity"
     null_value_ = 1.0
 
-    def forward(self, *, t, a, d):
+    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
         a[np.diag_indices_from(a)] = 1
         return vector_to_triangle(t, diag_value=1) * a
 
-    def inverse(self, *, data, a, d):
+    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
@@ -91,14 +91,14 @@ class AdditiveQuotient(BaseLinkFunction):
     name_ = "additive_quotient"
     null_value_ = 0.0
 
-    def forward(self, *, t, a, d):
+    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a + a.T
         a[np.diag_indices_from(a)] = 0
         return vector_to_triangle(t, diag_value=1) / (1 + a)
 
-    def inverse(self, *, data, a, d):
+    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a + a.T

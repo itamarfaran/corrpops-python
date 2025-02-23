@@ -15,7 +15,7 @@ from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
         [False, True],
     ),
 )
-def test_triangle_to_vector(n, p, diag: bool):
+def test_triangle_to_vector(n: int, p: int, diag: bool):
     triangle = np.arange(p**2).reshape((p, p))
     triangle = force_symmetry(np.stack(n * [triangle]))
 

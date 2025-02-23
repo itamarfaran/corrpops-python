@@ -1,13 +1,17 @@
+from typing import Optional, Union
+
 import numpy as np
 
 from linalg.triangle_vector import triangle_to_vector
 
 
-def efron_bias_correction(rms, p):
-    return np.sqrt(p / (p - 1) * (rms ^ 2 - 1 / (p - 1)))
+def efron_bias_correction(rms: Union[float, int], p: Union[float, int]) -> float:
+    return np.sqrt(p / (p - 1) * (rms**2 - 1 / (p - 1)))
 
 
-def efron_rms_sample(arr, p=None):
+def efron_rms_sample(
+    arr: np.ndarray, p: Optional[Union[float, int]] = None
+) -> np.ndarray:
     rms_mean = np.mean(
         np.sqrt(
             np.mean(
@@ -22,7 +26,7 @@ def efron_rms_sample(arr, p=None):
     return rms_mean
 
 
-def efron_rms(arr, p=None):
+def efron_rms(arr: np.ndarray, p: Union[float, int] = None) -> float:
     if arr.shape[-2] != arr.shape[-1]:
         raise ValueError("m is not square")
 
@@ -34,8 +38,8 @@ def efron_rms(arr, p=None):
 
     if p is not None:
         rms = efron_bias_correction(rms, p)
-    return rms
+    return float(rms)
 
 
-def efron_effective_sample_size(n, rms):
+def efron_effective_sample_size(n: Union[float, int], rms: Union[float, int]) -> float:
     return n / (1 + (n - 1) * rms**2)

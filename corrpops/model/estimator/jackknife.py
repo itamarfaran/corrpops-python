@@ -164,8 +164,8 @@ class CorrPopsJackknifeEstimator:
             "cov_est": None if cov_est_stack is None else cov_est_stack.mean(0),
         }
 
-    @classmethod
-    def results_from_json(cls, json_: Dict[str, Any]):
+    @staticmethod
+    def results_from_json(json_: Dict[str, Any]):
         results = json_["results"]
         out = {
             "alpha": np.array(results["alpha"]),

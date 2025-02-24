@@ -130,9 +130,9 @@ def wilks_test(
         warnings.warn(
             "covariance matrix is not symmetric positive semidefinite, returning nan"
         )
-        full_log_likelihood = null_log_likelihood = np.nan
+        full_log_likelihood = null_log_likelihood = np.float32(np.nan)
 
     chi2_val = 2 * (full_log_likelihood - null_log_likelihood)
-    df = np.size(alpha)
+    df = alpha.size
     p_val = stats.chi2.sf(chi2_val, df)
-    return WilksTestResult(float(chi2_val), df, float(p_val))
+    return WilksTestResult(chi2_val.item(), df, p_val.item())

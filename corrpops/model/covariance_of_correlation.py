@@ -95,7 +95,7 @@ def estimated_df(
         x = triangle_to_vector(theo, True)
         y = triangle_to_vector(est, True)
 
-    return float(np.linalg.lstsq(x[:, np.newaxis], y)[0][0])
+    return np.linalg.lstsq(x[:, np.newaxis], y)[0][0].item()
 
 
 def average_covariance_of_correlation(

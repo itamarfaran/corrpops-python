@@ -41,4 +41,4 @@ def sum_of_squares(
     sse *= diagnosed_arr.shape[0]
     if reg_lambda > 0.0:
         sse += reg_lambda * norm_p(alpha, link_function.null_value, reg_p)
-    return float(sse)
+    return sse

@@ -25,13 +25,11 @@ def mahalanobis(
             m = linalg.inv(m)
         out = x @ m @ np.swapaxes(x, -1, -2)
 
-    if sqrt:
-        out = np.sqrt(out)
-    return float(out)
+    return np.sqrt(out) if sqrt else out
 
 
 def norm_p(x: npt.ArrayLike, y: Optional[npt.ArrayLike] = None, p: float = 2) -> float:
     x = np.asarray(x)
     if y is not None:
         x = x - np.asarray(y)
-    return float(np.sum(np.abs(x) ** p) ** (1 / p))
+    return np.sum(np.abs(x) ** p) ** (1 / p)

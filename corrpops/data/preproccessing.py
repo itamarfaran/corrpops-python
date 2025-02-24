@@ -9,7 +9,7 @@ from scipy.io import loadmat
 def count_na_by_threshold(arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     na_counts = np.isnan(arr).mean(0)[0]
     thresholds = np.sort(np.unique(na_counts))
-    percent_omitted = np.array([(na_counts > t).mean() for t in thresholds])
+    percent_omitted = np.array([np.mean(na_counts > t) for t in thresholds])
     return thresholds, percent_omitted
 
 

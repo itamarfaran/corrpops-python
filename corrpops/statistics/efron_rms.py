@@ -30,7 +30,7 @@ def efron_rms(arr: np.ndarray, p: Union[float, int, None] = None) -> float:
     if arr.shape[-2] != arr.shape[-1]:
         raise ValueError("m is not square")
 
-    if (np.diag(arr) != 1).any():
+    if np.any(np.diag(arr) != 1):
         raise ValueError("diag of m is not 1")
 
     arr = triangle_to_vector(arr, False)
@@ -38,7 +38,7 @@ def efron_rms(arr: np.ndarray, p: Union[float, int, None] = None) -> float:
 
     if p is not None:
         rms = efron_bias_correction(rms, p)
-    return float(rms)
+    return rms
 
 
 def efron_effective_sample_size(n: Union[float, int], rms: Union[float, int]) -> float:

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -28,8 +28,26 @@ def mahalanobis(
     return np.sqrt(out) if sqrt else out
 
 
-def norm_p(x: npt.ArrayLike, y: Optional[npt.ArrayLike] = None, p: float = 2) -> float:
+def norm_p(
+    x: npt.ArrayLike,
+    y: Optional[npt.ArrayLike] = None,
+    p: float = 2,
+    agg: Literal["sum", "mean"] = "sum",
+    reduce: bool = True,
+) -> float:
     x = np.asarray(x)
     if y is not None:
         x = x - np.asarray(y)
-    return np.sum(np.abs(x) ** p) ** (1 / p)
+
+    x_raised = np.abs(x) ** p
+
+    if agg == "sum":
+        aggregated = np.sum(x_raised)
+    elif agg == "mean":
+        aggregated = np.mean(x_raised)
+    else:
+        raise ValueError(  # pragma: no cover
+            f"expected 'agg' to be either 'sum' or 'mean', got {agg} instead"
+        )
+
+    return aggregated ** (1 / p) if reduce else aggregated

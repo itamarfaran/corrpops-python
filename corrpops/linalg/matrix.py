@@ -1,15 +1,14 @@
 from typing import Literal
 
 import numpy as np
-from scipy import linalg
 
 
-def sqrt_diag(a: np.ndarray) -> np.ndarray:
+def sqrt_diag(a: np.ndarray) -> np.ndarray:  # pragma: no cover
     return np.sqrt(np.diagonal(a, axis1=-2, axis2=-1))
 
 
 def matrix_power(a: np.ndarray, power: float) -> np.ndarray:
-    w, v = linalg.eigh(a)
+    w, v = np.linalg.eigh(a)
     w = np.eye(len(w)) * w**power
     return v @ w @ v.T
 
@@ -29,9 +28,9 @@ def is_positive_definite(a: np.ndarray) -> np.ndarray:
     def _check(a_):
         if np.allclose(a_, a_.T):
             try:
-                linalg.cholesky(a_)
+                np.linalg.cholesky(a_)
                 return True
-            except linalg.LinAlgError:
+            except np.linalg.LinAlgError:
                 return False
         else:
             return False
@@ -44,31 +43,39 @@ def is_positive_definite(a: np.ndarray) -> np.ndarray:
 
 def regularize_matrix(
     a: np.ndarray,
-    const: float = 1.0,
+    const: float,
     method: Literal["constant", "avg_diag", "increase_diag"] = "constant",
-    only_if_singular: bool = True,
+    only_if_singular: bool = False,
 ) -> np.ndarray:
-    p = a.shape[-1]
-    if a.shape[-2] != p:
-        raise IndexError
+    if a.ndim != 2:
+        raise ValueError(f"expected 2d array, got {a.ndim}d instead")
+
+    p = a.shape[0]
+    if a.shape[1] != p:
+        raise ValueError(f"array is not square: {a.shape}")
+
+    if const < 0:
+        raise ValueError("const must be greater or equal to 0")
+    if const > 1:
+        if method != "constant":
+            raise ValueError(f"in method '{method}' const must be in [0, 1]")
+
     if only_if_singular:
-        if linalg.matrix_rank(a) == p:
+        if np.linalg.matrix_rank(a) == p:
             return a
 
     if method == "constant":
-        if const < 0:
-            raise ValueError("in method 'constant' const must be greater or equal to 0")
-        return a + np.eye(p) * const
-    elif method == "avg_diag":
-        if not 0 <= const <= 1:
-            raise ValueError("in method 'avg_diag' const must be in [0, 1]")
-        return (1 - const) * a + const * np.eye(p) * np.diag(a).mean()
-    elif method == "increase_diag":
-        if not 0 <= const <= 1:
-            raise ValueError("in method 'increase_diag' const must be in [0, 1]")
-        return (1 - const) * a + const * np.diag(np.diag(a))
-    else:
-        raise ValueError
+        return a + np.diag(np.full(p, const))
+
+    diag = np.diag(a)
+    if method == "avg_diag":
+        diag = np.full(p, np.mean(diag))
+    elif method != "increase_diag":
+        raise ValueError(  # pragma: no cover
+            f"expected method to be one of 'constant', "
+            f"'avg_diag', 'increase_diag, got {method} instead"
+        )
+    return (1 - const) * a + const * np.diag(diag)
 
 
 def cov_to_corr(a: np.ndarray) -> np.ndarray:

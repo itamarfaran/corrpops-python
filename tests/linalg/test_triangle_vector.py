@@ -3,8 +3,8 @@ import itertools
 import numpy as np
 import pytest
 
-from linalg.matrix import force_symmetry
-from linalg.triangle_vector import (
+from corrpops.linalg.matrix import force_symmetry
+from corrpops.linalg.triangle_vector import (
     triangle_to_vector,
     vector_to_triangle,
     triangular_dim,

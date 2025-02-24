@@ -4,18 +4,17 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from linalg.matrix import cov_to_corr
-from model.covariance_of_correlation import covariance_of_correlation
+from corrpops.linalg.matrix import cov_to_corr
+from corrpops.model.covariance_of_correlation import covariance_of_correlation
 
-N_P_VALUES = list(
+
+@pytest.mark.parametrize(
+    "n, p",
     itertools.product(
         [1, 10],
         [4, 6, 8],
     )
 )
-
-
-@pytest.mark.parametrize("n, p", N_P_VALUES)
 def test_covariance_of_correlation(n: int, p: int):
     matrices = stats.wishart.rvs(
         df=5 * p,

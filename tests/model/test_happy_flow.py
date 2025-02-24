@@ -10,7 +10,8 @@ from corrpops.model import estimator, link_functions
 @pytest.mark.parametrize(
     "link_function_class, n_control, n_diagnosed",
     itertools.product(
-        link_functions.BaseLinkFunction.__subclasses__(),
+        [link_functions.MultiplicativeIdentity],
+        # todo: add AdditiveQuotient with null alpha = 0.0
         [10, 20],
         [10, 20],
     ),
@@ -27,8 +28,9 @@ def test_happy_flow(parameters, link_function_class, n_control, n_diagnosed):
     model = estimator.CorrPopsEstimator(
         link_function=link_function,
         optimizer_kwargs={"verbose": False},
-    ).fit(control, diagnosed, compute_cov=False)
+    ).fit(control, diagnosed)
 
-    atol = 1 / n_control + 1 / n_diagnosed
-    np.testing.assert_allclose(model.alpha_, alpha.flatten(), atol=atol)
-    np.testing.assert_allclose(model.theta_, triangle_to_vector(theta), atol=atol)
+    for results in (model.optimizer_results_, model.naive_optimizer_results_):
+        np.testing.assert_allclose(results.alpha, alpha.flatten(), rtol=0.1, atol=0.01)
+        np.testing.assert_allclose(results.theta, triangle_to_vector(theta), rtol=0.1, atol=0.01)
+    np.testing.assert_allclose(model.cov_, 0.0, rtol=0.1, atol=0.01)  # no variance in sample

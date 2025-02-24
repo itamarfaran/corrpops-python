@@ -194,14 +194,14 @@ class CorrPopsEstimator:
             theta0 = None
         else:
             logger.info("estimator:fit: run naive_optimizer.optimize")
-            naive_optimizer_results = self.naive_optimizer.optimize(
+            self.naive_optimizer_results_ = self.naive_optimizer.optimize(
                 control_arr=control_arr,
                 diagnosed_arr=diagnosed_arr,
                 link_function=self.link_function,
                 dim_alpha=self.dim_alpha,
             )
-            alpha0 = naive_optimizer_results.alpha
-            theta0 = naive_optimizer_results.theta
+            alpha0 = self.naive_optimizer_results_.alpha
+            theta0 = self.naive_optimizer_results_.theta
 
         logger.info("estimator:fit: run optimizer.optimize")
         self.optimizer_results_ = self.optimizer.optimize(

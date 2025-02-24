@@ -3,8 +3,8 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 import pytest
 
-from linalg.triangle_vector import triangle_to_vector
-from model.link_functions import BaseLinkFunction, Transformer
+from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.model.link_functions import BaseLinkFunction, Transformer
 
 
 @pytest.mark.parametrize(

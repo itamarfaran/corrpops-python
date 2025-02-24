@@ -1,11 +1,11 @@
+import itertools
+
 import numpy as np
 import pytest
 from scipy import stats
 from statsmodels.stats.moment_helpers import cov2corr
 
 from corrpops.linalg import matrix, vector
-from linalg.matrix import cov_to_corr
-from tests.model.test_covariance_of_correlation import N_P_VALUES
 
 
 def test_matrix_power():
@@ -45,7 +45,13 @@ def test_is_positive_definite():
     assert not matrix.is_positive_definite(v @ np.diag(w + 1) @ v)
 
 
-@pytest.mark.parametrize("n, p", N_P_VALUES)
+@pytest.mark.parametrize(
+    "n, p",
+    itertools.product(
+        [1, 10],
+        [4, 6, 8],
+    )
+)
 def test_cov_to_corr(n: int, p: int):
     matrices = stats.wishart.rvs(
         df=5 * p,
@@ -55,7 +61,7 @@ def test_cov_to_corr(n: int, p: int):
 
     for i in np.random.choice(n, min(n, 5), replace=False):
         np.testing.assert_allclose(
-            cov_to_corr(matrices)[i],
+            matrix.cov_to_corr(matrices)[i],
             cov2corr(matrices[i]),
         )
 

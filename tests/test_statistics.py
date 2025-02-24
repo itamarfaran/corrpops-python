@@ -1,9 +1,24 @@
+import itertools
+
 import numpy as np
 import pytest
 from scipy import stats
 
-from corrpops.linalg import matrix
-from corrpops.statistics import efron_rms
+from corrpops.statistics import arma, piece_wise_comparison
+from linalg import matrix
+from statistics import efron_rms
+
+
+def test_is_invertible_arma():
+    assert arma.is_invertible_arma(0)
+    assert arma.is_invertible_arma(0.5)
+    assert arma.is_invertible_arma([0.5, 0.1])
+
+    assert not arma.is_invertible_arma(1.5)
+    assert not arma.is_invertible_arma([0.5, 0.8])
+
+    with pytest.raises(ValueError):
+        arma.is_invertible_arma(np.array([[0.5], [0.8]]))
 
 
 @pytest.mark.parametrize("size", [1, (1,), 2, 12, (23, 44)])
@@ -43,3 +58,25 @@ def test_efron_rms(size):
             matrix.cov_to_corr(v @ np.diag(w) @ v.T),
             check_psd=True,
         )
+
+
+@pytest.mark.parametrize(
+    "p_adjust_method, alternative",
+    itertools.product(
+        ["bonferroni", "fdr_bh"],
+        ["two-sided", "smaller", "larger"],
+    ),
+)
+def test_piece_wise_comparison(parameters_and_sample, p_adjust_method, alternative):
+    _, _, control, diagnosed = parameters_and_sample
+    result = piece_wise_comparison.piece_wise_comparison(
+        control=control,
+        diagnosed=diagnosed,
+        p_adjust_method=p_adjust_method,
+        alternative=alternative,
+    )
+
+    assert isinstance(result, dict)
+    for k, v in result.items():
+        assert isinstance(k, str)
+        assert isinstance(v, np.ndarray)

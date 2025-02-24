@@ -6,6 +6,13 @@ from scipy import stats
 from statsmodels.stats.moment_helpers import cov2corr
 
 from corrpops.linalg import matrix, vector
+from linalg.matrix import force_symmetry
+from linalg.triangle_vector import (
+    triangle_to_vector,
+    vector_to_triangle,
+    vectorized_dim,
+    triangular_dim,
+)
 
 
 def test_matrix_power():
@@ -183,3 +190,102 @@ def test_norm_p(d, p):
     np.testing.assert_allclose(vector.norm_p(x, p=p, reduce=False), d)
     np.testing.assert_allclose(vector.norm_p(x, p=p, agg="mean"), 1)
     np.testing.assert_allclose(vector.norm_p(x, x, p=p, agg="mean"), 0)
+
+
+def test_triangle_to_vector():
+    triangle_ = 1 + np.arange(4**2).reshape((4, 4))
+
+    vector_ = triangle_to_vector(triangle_, diag=False)
+    assert vector_.shape == (6,)
+    assert vectorized_dim(4, diag=False) == 6
+
+    np.testing.assert_array_equal(vector_, np.array([5, 9, 10, 13, 14, 15]))
+
+    vector_ = triangle_to_vector(triangle_, diag=True)
+    assert vector_.shape == (10,)
+    assert vectorized_dim(4, diag=True) == 10
+
+    np.testing.assert_array_equal(
+        triangle_to_vector(triangle_, diag=True),
+        np.array([1, 5, 6, 9, 10, 11, 13, 14, 15, 16]),
+    )
+
+    with pytest.raises(ValueError):
+        triangle_to_vector(triangle_, check=True)
+    with pytest.raises(ValueError):
+        triangle_to_vector(np.arange(4 * 5).reshape((4, 5)))
+
+
+@pytest.mark.parametrize("diag", [False, True])
+def test_vector_to_triangle(diag):
+    vector_ = np.arange(6)
+    m = 3 if diag else 4
+
+    triangle_ = vector_to_triangle(vector_, diag=diag)
+    assert triangle_.shape == (m, m)
+    assert triangular_dim(6, diag=diag) == m
+    row, col = np.tril_indices(m, k=0 if diag else -1)
+    np.testing.assert_array_equal(
+        triangle_[row, col],
+        vector_,
+    )
+    with pytest.raises(ValueError):
+        vector_to_triangle(np.arange(5), diag=diag)
+
+
+@pytest.mark.parametrize(
+    "n, p, diag",
+    itertools.product(
+        [1, 2, 5],
+        [4, 6, 10],
+        [False, True],
+    ),
+)
+def test_triangle_vector_duality(n: int, p: int, diag: bool):
+    triangle_ = np.arange(p**2).reshape((p, p))
+    triangle_ = force_symmetry(np.stack(n * [triangle_]))
+
+    diag_value = np.random.random()
+    if not diag:
+        row, col = np.diag_indices(p)
+        triangle_[..., row, col] = diag_value
+
+    vector_ = triangle_to_vector(triangle_, diag)
+    np.testing.assert_array_equal(
+        vector_to_triangle(vector_, diag, diag_value=diag_value),
+        triangle_,
+    )
+
+
+@pytest.mark.parametrize(
+    "diag, diag_value",
+    itertools.product(
+        [False, True],
+        [0, 1, np.nan],
+    ),
+)
+def test_vector_to_triangle_multi_index(diag, diag_value):
+    rng = np.random.default_rng(358)
+    triangles_ = rng.random((10, 12, 4, 4))
+    vectors_ = triangle_to_vector(triangles_, diag=diag)
+
+    for index in np.ndindex(triangles_.shape[:-2]):
+        np.testing.assert_array_equal(
+            vectors_[index], triangle_to_vector(triangles_[index], diag=diag)
+        )
+
+    vectors_ = rng.random((12, 12, 6))
+    triangles_ = vector_to_triangle(vectors_, diag=diag, diag_value=diag_value)
+
+    for index in np.ndindex(triangles_.shape[:-2]):
+        np.testing.assert_array_equal(
+            triangles_[index],
+            vector_to_triangle(vectors_[index], diag=diag, diag_value=diag_value),
+        )
+
+    if not diag:
+        row, col = np.diag_indices(4)
+        np.testing.assert_array_equal(
+            triangles_[..., row, col],
+            diag_value,
+        )

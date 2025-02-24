@@ -59,9 +59,9 @@ model = estimator.CorrPopsEstimator(
 model.fit(control, diagnosed, compute_cov=False)
 
 if REAL_DATA:
-    with gzip.open("../tga_aal.json.gz", "w") as f:
+    with gzip.open("tga_aal.json.gz", "w") as f:
         f.write(json.dumps(model.to_json()).encode("utf-8"))
-    with gzip.open("../tga_aal.json.gz", "r") as f:
+    with gzip.open("tga_aal.json.gz", "r") as f:
         new_model_json = json.loads(f.read().decode("utf-8"))
 else:
     new_model_json = model.to_json()
@@ -72,6 +72,10 @@ new_model = estimator.CorrPopsEstimator.from_json(
     model.link_function,
     non_positive="warn",
 ).compute_covariance(control, diagnosed)
+
+new_model.alpha_ = (
+    new_model.alpha_ - np.median(new_model.alpha_) + new_model.link_function.null_value
+)
 
 gee_inference = pd.DataFrame(
     new_model.inference(

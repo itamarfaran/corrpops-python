@@ -61,11 +61,11 @@ class BaseLinkFunction(ABC):
 
     @abstractmethod
     def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
-        pass
+        pass  # pragma: no cover
 
 
 class MultiplicativeIdentity(BaseLinkFunction):

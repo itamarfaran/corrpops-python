@@ -172,7 +172,7 @@ def test_mahalanobis():
         vector.norm_p(x, y),
     )
     np.testing.assert_array_equal(
-        vector.mahalanobis(x, y, np.eye(10), solve=True),
+        vector.mahalanobis(x, y, np.eye(10), inverse=False),
         vector.norm_p(x, y),
     )
 

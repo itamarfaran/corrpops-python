@@ -17,7 +17,7 @@ def efron_bias_correction(
     rms: FloatIntOrArray,
     n: FloatIntOrArray,
 ) -> Union[float, np.ndarray]:
-    return np.sqrt(n / (n - 1) * (rms**2 - 1 / (n - 1)))
+    return np.sqrt(n / (n - 1) * np.maximum(rms**2 - 1 / (n - 1), 0))
 
 
 def efron_rms_from_vectors(

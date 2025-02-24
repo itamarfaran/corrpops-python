@@ -23,6 +23,7 @@ def test_is_invertible_arma():
 
 @pytest.mark.parametrize("size", [1, (1,), 2, 12, (23, 44)])
 def test_efron_rms(size):
+    rng = np.random.default_rng(17)
     if size in (1, (1,)):
         size_ = ()
     elif not isinstance(size, tuple):
@@ -30,14 +31,16 @@ def test_efron_rms(size):
     else:
         size_ = size
 
-    v = stats.ortho_group.rvs(5, random_state=7549)
+    v = stats.ortho_group.rvs(5, random_state=rng)
     w = np.arange(5)
     scale = v @ np.diag(1 + w) @ v.T
 
     p = scale.shape[0]
     df = 2 * p
 
-    arr = matrix.cov_to_corr(stats.wishart.rvs(df=df, scale=scale, size=size))
+    arr = matrix.cov_to_corr(
+        stats.wishart.rvs(df=df, scale=scale, size=size, random_state=rng)
+    )
 
     for bias in (False, True):
         rms = efron_rms.efron_rms(arr, df if bias else None)

@@ -5,20 +5,27 @@ import pytest
 
 from corrpops.linalg.triangle_vector import triangle_to_vector
 from corrpops.model import estimator, link_functions
+from corrpops.simulation.sample import build_parameters
 
 
 @pytest.mark.parametrize(
     "link_function_class, n_control, n_diagnosed",
     itertools.product(
-        [link_functions.MultiplicativeIdentity],
-        # todo: add AdditiveQuotient with null alpha = 0.0
-        [10, 20],
-        [10, 20],
+        link_functions.BaseLinkFunction.__subclasses__(),
+        [12, 18],
+        [12, 18],
     ),
 )
 def test_happy_flow(parameters, link_function_class, n_control, n_diagnosed):
-    theta, alpha, _ = parameters
-    link_function = link_function_class()
+    link_function: link_functions.BaseLinkFunction = link_function_class()
+    theta, alpha, _ = build_parameters(
+        p=4,
+        percent_alpha=0.2,
+        alpha_min=0.4,
+        alpha_max=0.6,
+        alpha_null=link_function.null_value,
+        random_state=42,
+    )
 
     control = np.stack(n_control * [theta])
     diagnosed = np.stack(

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.linalg.matrix import is_positive_definite
 from corrpops.model.link_functions import BaseLinkFunction, Transformer
 
 
@@ -33,6 +34,17 @@ def test_link_function(
 
     with pytest.raises(ValueError):
         link_function_class(Transformer(lambda x: x, lambda x: x + 0.0001))
+
+    with pytest.raises(ValueError):
+        link_function.check_name_equal(link_function.name + "another thing")
+
+    assert is_positive_definite(
+        link_function.forward(
+            t=triangle_to_vector(theta),
+            a=np.full_like(alpha, link_function.null_value),
+            d=1,
+        )
+    )
 
     np.testing.assert_allclose(
         triangle_to_vector(control),

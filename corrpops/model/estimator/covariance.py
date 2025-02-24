@@ -9,7 +9,7 @@ from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.optimizer import CorrPopsOptimizerResults
 from model.likelihood import theta_of_alpha
 from model.link_functions import BaseLinkFunction
-from statistics.efron_rms import efron_effective_sample_size, efron_rms_sample
+from statistics.efron_rms import efron_effective_sample_size, efron_rms_from_vectors
 
 
 class CovarianceEstimator(ABC):
@@ -80,7 +80,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         if self.df_method == "efron":
             df = efron_effective_sample_size(
                 n=np.prod(arr.shape[:-1]),
-                rms=efron_rms_sample(arr),
+                rms=efron_rms_from_vectors(arr).mean(),
             )
         else:
             df = np.prod(arr.shape[:-1])

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from corrpops.data.preproccessing import matlab_to_dict
+from corrpops.data.loaders import matlab_to_dict
 from corrpops.linalg.triangle_vector import triangle_to_vector
 
 

@@ -50,7 +50,7 @@ def test_is_positive_definite():
     itertools.product(
         [1, 10],
         [4, 6, 8],
-    )
+    ),
 )
 def test_cov_to_corr(n: int, p: int):
     matrices = stats.wishart.rvs(

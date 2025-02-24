@@ -17,7 +17,7 @@ from corrpops.model import estimator, link_functions
     ),
 )
 def test_happy_flow(parameters, link_function_class, n_control, n_diagnosed):
-    theta, alpha = parameters
+    theta, alpha, _ = parameters
     link_function = link_function_class()
 
     control = np.stack(n_control * [theta])
@@ -32,5 +32,9 @@ def test_happy_flow(parameters, link_function_class, n_control, n_diagnosed):
 
     for results in (model.optimizer_results_, model.naive_optimizer_results_):
         np.testing.assert_allclose(results.alpha, alpha.flatten(), rtol=0.1, atol=0.01)
-        np.testing.assert_allclose(results.theta, triangle_to_vector(theta), rtol=0.1, atol=0.01)
-    np.testing.assert_allclose(model.cov_, 0.0, rtol=0.1, atol=0.01)  # no variance in sample
+        np.testing.assert_allclose(
+            results.theta, triangle_to_vector(theta), rtol=0.1, atol=0.01
+        )
+
+    # no variance in sample
+    np.testing.assert_allclose(model.cov_, 0.0, rtol=0.1, atol=0.01)

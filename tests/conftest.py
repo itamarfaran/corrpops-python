@@ -8,14 +8,13 @@ from corrpops.simulation.sample import build_parameters, create_samples_from_par
 
 
 @pytest.fixture(scope="function")
-def parameters() -> Tuple[np.ndarray, np.ndarray]:
-    theta, alpha, sigma = build_parameters(
+def parameters() -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    return build_parameters(
         p=5,
         percent_alpha=0.2,
         alpha_min=0.7,
         random_state=42,
     )
-    return theta, alpha
 
 
 @pytest.fixture(scope="function")

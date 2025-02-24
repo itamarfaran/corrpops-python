@@ -59,12 +59,14 @@ def test_build_parameters(p, dim_alpha, enforce_min_alpha):
     ),
 )
 def test_create_samples(parameters, control_n, diagnosed_n, size):
-    p = parameters[0].shape[0]
+    theta, alpha, _ = parameters
+    p = theta.shape[0]
+
     control, diagnosed = sample.create_samples(
         control_n=control_n,
         diagnosed_n=diagnosed_n,
-        control_covariance=parameters[0],
-        diagnosed_covariance=parameters[0],
+        control_covariance=theta,
+        diagnosed_covariance=theta,
         size=size,
     )
     assert matrix.is_positive_definite(control).all()
@@ -76,8 +78,8 @@ def test_create_samples(parameters, control_n, diagnosed_n, size):
     control, diagnosed = sample.create_samples_from_parameters(
         control_n=control_n,
         diagnosed_n=diagnosed_n,
-        theta=parameters[0],
-        alpha=parameters[1],
+        theta=theta,
+        alpha=alpha,
         link_function=MultiplicativeIdentity(),
         size=size,
     )

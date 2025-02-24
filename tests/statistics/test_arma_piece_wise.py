@@ -7,11 +7,15 @@ from corrpops.statistics import arma, piece_wise_comparison
 
 
 def test_is_invertible_arma():
+    assert arma.is_invertible_arma(0)
     assert arma.is_invertible_arma(0.5)
     assert arma.is_invertible_arma([0.5, 0.1])
 
     assert not arma.is_invertible_arma(1.5)
     assert not arma.is_invertible_arma([0.5, 0.8])
+
+    with pytest.raises(ValueError):
+        arma.is_invertible_arma(np.array([[0.5], [0.8]]))
 
 
 @pytest.mark.parametrize(

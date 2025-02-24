@@ -13,7 +13,7 @@ from corrpops.model.covariance_of_correlation import covariance_of_correlation
     itertools.product(
         [1, 10],
         [4, 6, 8],
-    )
+    ),
 )
 def test_covariance_of_correlation(n: int, p: int):
     matrices = stats.wishart.rvs(

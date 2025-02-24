@@ -1,7 +1,7 @@
-import copy
-from typing import Any, Iterable, List, Tuple, Union
+from typing import Any, Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 from scipy import linalg, stats
 
 from linalg.matrix import is_positive_definite
@@ -24,8 +24,7 @@ def generate_covariance_with_random_effect(
         out = stats.wishart.rvs(df=p, scale=scale, size=size, random_state=random_state)
         return out / p
 
-    out = np.repeat(scale[np.newaxis, :, :], size, axis=0)
-    return np.squeeze(out)
+    return np.repeat(scale[np.newaxis, :, :], size, axis=0).squeeze()
 
 
 def multivariate_normal_rvs(
@@ -86,31 +85,37 @@ def generalized_wishart_rvs(
     return np.swapaxes(x, -1, -2) @ x
 
 
-def _prepare_ar_ma(ar_ma: Union[float, Iterable[float]]) -> List[float]:
-    if not ar_ma:
-        out = []
-    elif not isinstance(ar_ma, (tuple, list)):
-        out = [ar_ma]
+def _prepare_arma(
+    ar: npt.ArrayLike,
+    ma: npt.ArrayLike,
+) -> Tuple[np.ndarray, np.ndarray, int]:
+    ar = np.atleast_1d(ar)
+    ma = np.atleast_1d(ma)
+
+    if not is_invertible_arma(ar):
+        raise ValueError("ar not stationary")
+    if not is_invertible_arma(ma):
+        raise ValueError("ma not invertible")
+
+    shape_diff = ma.size - ar.size
+    if shape_diff > 0:
+        ar = np.append(ar, np.zeros(shape_diff))
+    elif shape_diff < 0:
+        ma = np.append(ma, np.zeros(-shape_diff))
+
+    if np.all(ar == 0) and np.all(ma == 0):
+        max_lag = 0
     else:
-        out = copy.copy(list(ar_ma))
-    if not is_invertible_arma(out):
-        raise ValueError
-    return out
+        max_lag = ar.size
 
-
-def _append_until_equal_length(ar: List[float], ma: List[float]) -> int:
-    while len(ar) < len(ma):
-        ar.append(0)
-    while len(ma) < len(ar):
-        ma.append(0)
-    return len(ar)
+    return ar, ma, max_lag
 
 
 def arma_wishart_rvs(
     df: Union[int, float],
     scale: np.ndarray,
-    ar: Union[float, Iterable[float]] = 0.0,
-    ma: Union[float, Iterable[float]] = 0.0,
+    ar: npt.ArrayLike = 0.0,
+    ma: npt.ArrayLike = 0.0,
     random_effect: float = 0.0,
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
@@ -118,9 +123,7 @@ def arma_wishart_rvs(
     if isinstance(size, int):
         size = (size,)
 
-    ar_ = _prepare_ar_ma(ar)
-    ma_ = _prepare_ar_ma(ma)
-    max_lag = _append_until_equal_length(ar_, ma_)
+    ar, ma, max_lag = _prepare_arma(ar, ma)
 
     if not max_lag:
         return generalized_wishart_rvs(
@@ -138,13 +141,13 @@ def arma_wishart_rvs(
         size=size,
         random_state=random_state,
     )
-    out = np.zeros(size + (df, scale.shape[-1]), float)
+    out = np.zeros(size + (df, scale.shape[-1]), float).squeeze()
     for i in range(df):
         out[..., i, :] = eps[..., i, :]
 
         for lag in range(max_lag):
             if lag < i:
-                out[..., i, :] += ma_[lag] * eps[..., i - lag - 1, :]
-                out[..., i, :] += ar_[lag] * out[..., i - lag - 1, :]
+                out[..., i, :] += ma[lag] * eps[..., i - lag - 1, :]
+                out[..., i, :] += ar[lag] * out[..., i - lag - 1, :]
 
     return np.swapaxes(out, -1, -2) @ out

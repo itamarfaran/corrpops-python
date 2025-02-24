@@ -7,7 +7,7 @@ try:
     from statsmodels.stats.multitest import multipletests
 
     _statsmodels_installed: bool = True
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     _statsmodels_installed: bool = False
 
 from linalg.triangle_vector import triangle_to_vector
@@ -50,7 +50,7 @@ def piece_wise_comparison(
     elif alternative == "two-sided":
         p_vals = 2 * stats.t.sf(np.abs(t_vals), df=df)
     else:
-        raise ValueError(
+        raise ValueError(  # pragma: no cover
             f"alternative should be one of ['two-sided', 'smaller', 'larger'], "
             f"got {alternative} instead"
         )
@@ -60,7 +60,7 @@ def piece_wise_comparison(
     elif _statsmodels_installed:
         p_vals_adjusted = multipletests(pvals=p_vals, method=p_adjust_method)[1]
     else:
-        raise ModuleNotFoundError(
+        raise ModuleNotFoundError(  # pragma: no cover
             "missing optional dependency statsmodels. "
             "only p_adjust_method='bonferroni' is supported. "
             "for other methods please install statsmodels."

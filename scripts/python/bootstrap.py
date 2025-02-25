@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+import zipfile
 from collections import namedtuple
 from typing import List
 
@@ -136,6 +137,7 @@ if __name__ == "__main__":
         ray.init()
         running_results = []
 
+        # don't forget to remove [:1]
         for i, permutation in enumerate(permutations[:1]):
             if not is_invertible_arma(permutation.ar):
                 raise ValueError
@@ -151,3 +153,7 @@ if __name__ == "__main__":
 
     finally:
         ray.shutdown()
+
+    with zipfile.ZipFile(os.path.join(RESULTS_DIR, f"{RESULTS_DIR}.zip"), "w", 0) as zf:
+        for filename in os.listdir(RESULTS_DIR):
+            zf.write(os.path.join(RESULTS_DIR, filename))

@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from corrpops.data.loaders import matlab_to_dict
-from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.linalg.triangle_and_vector import triangle_to_vector
 
 
 def get_root_directory() -> Path:

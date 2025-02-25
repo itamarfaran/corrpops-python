@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 
-from linalg.triangle_vector import vector_to_triangle, triangle_to_vector
+from linalg.triangle_and_vector import vector_to_triangle, triangle_to_vector
 
 
 class Transformer:
@@ -77,7 +77,7 @@ class MultiplicativeIdentity(BaseLinkFunction):
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
         a[np.diag_indices_from(a)] = 1
-        return vector_to_triangle(t, diag_value=1) * a
+        return vector_to_triangle(t) * a
 
     def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
@@ -96,7 +96,7 @@ class AdditiveQuotient(BaseLinkFunction):
         a = a.reshape((int(a.size / d), d))
         a = a + a.T
         a[np.diag_indices_from(a)] = 0
-        return vector_to_triangle(t, diag_value=1) / (1 + a)
+        return vector_to_triangle(t) / (1 + a)
 
     def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)

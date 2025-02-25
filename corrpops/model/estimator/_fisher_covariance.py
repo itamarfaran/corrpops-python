@@ -5,7 +5,7 @@ import numpy as np
 from scipy import optimize
 
 from linalg.matrix import force_symmetry
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.covariance import CovarianceEstimator
 from model.estimator.optimizer import CorrPopsOptimizerResults
@@ -101,7 +101,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
             expected_value = np.mean(control_arr, axis=-1)
 
         cov, _ = average_covariance_of_correlation(
-            vector_to_triangle(control_arr, diag_value=1),
+            vector_to_triangle(control_arr),
             est_n=self.estimated_n,
             non_positive=non_positive,
         )

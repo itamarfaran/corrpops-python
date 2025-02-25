@@ -8,7 +8,7 @@ import numpy as np
 import ray
 from scipy import stats
 
-from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.linalg.triangle_and_vector import triangle_to_vector
 from corrpops.model.estimator import CorrPopsEstimator
 from corrpops.model.link_functions import MultiplicativeIdentity
 from corrpops.simulation.sample import build_parameters, create_samples_from_parameters

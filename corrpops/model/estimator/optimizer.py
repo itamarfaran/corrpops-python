@@ -9,7 +9,7 @@ import numpy as np
 from scipy import linalg, optimize
 
 from linalg.matrix import is_positive_definite, regularize_matrix
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
@@ -143,7 +143,7 @@ class CorrPopsOptimizer:
         dim_alpha: int,
     ):
         is_positive_definite_ = (
-            is_positive_definite(vector_to_triangle(theta, diag_value=1)),
+            is_positive_definite(vector_to_triangle(theta)),
             is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
         )
         if not all(is_positive_definite_):

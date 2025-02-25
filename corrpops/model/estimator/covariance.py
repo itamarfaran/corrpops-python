@@ -4,7 +4,7 @@ from typing import Any, Dict, Callable, Literal, TypedDict
 import numpy as np
 from scipy import optimize
 
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.optimizer import CorrPopsOptimizerResults
 from model.likelihood import theta_of_alpha
@@ -71,7 +71,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         jacobian = optimize.approx_fprime(optimizer_results.alpha, jacobian_func)
 
         cov, _ = average_covariance_of_correlation(
-            vector_to_triangle(arr, diag_value=1),
+            vector_to_triangle(arr),
             non_positive=non_positive,
             # don't I need estimated n for something?
         )

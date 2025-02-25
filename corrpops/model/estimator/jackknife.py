@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     _ray_installed: bool = False
 
 
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.estimator import CorrPopsEstimator
 from model.estimator.covariance import GeeCovarianceEstimator
@@ -62,7 +62,7 @@ def _jackknife_single(
     if drop_in_diagnosed:
         diagnosed_arr = np.delete(diagnosed_arr, index_to_drop, axis=0)
         weights, _ = average_covariance_of_correlation(
-            vector_to_triangle(diagnosed_arr, diag_value=1),
+            vector_to_triangle(diagnosed_arr),
             non_positive="ignore",
             # maybe we can avoid this and use the general weights?
         )

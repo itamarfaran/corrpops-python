@@ -36,7 +36,7 @@ def triangle_to_vector(
 def vector_to_triangle(
     a: np.ndarray,
     diag: bool = False,
-    diag_value: float = np.nan,
+    diag_value: float = 1.0,
 ) -> np.ndarray:
     p = triangular_dim(a.shape[-1], diag=diag)
     out = np.zeros(a.shape[:-1] + (p, p))

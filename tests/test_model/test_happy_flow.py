@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import pytest
 
-from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.linalg.triangle_and_vector import triangle_to_vector
 from corrpops.model import estimator, link_functions
 from corrpops.simulation.sample import build_parameters
 

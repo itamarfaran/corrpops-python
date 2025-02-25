@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     _statsmodels_installed: bool = False
 
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_and_vector import triangle_to_vector
 
 
 # todo: should be part of package?

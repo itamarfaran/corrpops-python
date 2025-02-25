@@ -4,7 +4,7 @@ from typing import Dict, Literal, Union
 
 import numpy as np
 
-from linalg.triangle_vector import vector_to_triangle
+from linalg.triangle_and_vector import vector_to_triangle
 
 
 def download_data(dst: Path):  # pragma: no cover
@@ -39,8 +39,8 @@ def load_data(  # pragma: no cover
     return {
         "header": data["header"],
         "version": data["version"],
-        "control": vector_to_triangle(data["control"], diag_value=1.0),
-        "diagnosed": vector_to_triangle(data["diagnosed"], diag_value=1.0),
+        "control": vector_to_triangle(data["control"]),
+        "diagnosed": vector_to_triangle(data["diagnosed"]),
     }
 
 

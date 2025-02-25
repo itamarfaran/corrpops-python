@@ -5,7 +5,7 @@ import numpy as np
 from numba import njit
 
 from linalg.matrix import fill_other_triangle, is_positive_definite
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_and_vector import triangle_to_vector
 
 
 @njit

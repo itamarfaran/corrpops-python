@@ -4,7 +4,7 @@ import numpy as np
 from scipy import stats
 
 from linalg.matrix import force_symmetry, cov_to_corr
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_and_vector import triangle_to_vector
 from model.link_functions import BaseLinkFunction
 from simulation.wishart import arma_wishart_rvs
 

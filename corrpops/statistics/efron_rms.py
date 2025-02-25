@@ -8,7 +8,7 @@ from typing import Optional, Union
 import numpy as np
 
 from linalg.matrix import is_positive_definite
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_and_vector import triangle_to_vector
 
 FloatIntOrArray = Union[float, int, np.ndarray]
 

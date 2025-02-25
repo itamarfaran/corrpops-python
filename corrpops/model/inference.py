@@ -12,7 +12,7 @@ try:
 except ModuleNotFoundError:
     _statsmodels_installed: bool = False
 
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from .covariance_of_correlation import covariance_of_correlation
 from .link_functions import BaseLinkFunction
 
@@ -100,7 +100,7 @@ def wilks_test(
                 x=control_arr,
                 mean=theta,
                 cov=covariance_of_correlation(
-                    vector_to_triangle(theta, diag_value=1),
+                    vector_to_triangle(theta),
                     non_positive,
                 ),
                 allow_singular=True,

@@ -3,7 +3,7 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 import pytest
 
-from corrpops.linalg.triangle_vector import triangle_to_vector
+from corrpops.linalg.triangle_and_vector import triangle_to_vector
 from corrpops.linalg.matrix import is_positive_definite
 from corrpops.model.link_functions import BaseLinkFunction, Transformer
 

@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Union, Literal
 
 import numpy as np
 
-from linalg.triangle_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.covariance import CovarianceEstimator, GeeCovarianceEstimator
 from model.estimator.optimizer import (
@@ -220,8 +220,8 @@ class CorrPopsEstimator:
         if compute_cov and self.covariance_estimator is not None:
             logger.info("estimator:fit: run covariance_estimator.compute")
             self.compute_covariance(
-                control_arr=vector_to_triangle(control_arr, diag_value=1),
-                diagnosed_arr=vector_to_triangle(diagnosed_arr, diag_value=1),
+                control_arr=vector_to_triangle(control_arr),
+                diagnosed_arr=vector_to_triangle(diagnosed_arr),
             )
         return self
 

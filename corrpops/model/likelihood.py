@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from linalg.triangle_vector import triangle_to_vector
+from linalg.triangle_and_vector import triangle_to_vector
 from linalg.vector import norm_p
 from .link_functions import BaseLinkFunction
 

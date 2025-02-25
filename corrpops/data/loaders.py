@@ -1,10 +1,13 @@
-import warnings
+import logging
 from pathlib import Path
 from typing import Dict, Literal, Union
 
 import numpy as np
 
 from linalg.triangle_and_vector import vector_to_triangle
+
+logger = logging.getLogger("corrpops")
+logging.basicConfig(level=logging.INFO)
 
 
 def download_data(dst: Path):  # pragma: no cover
@@ -14,7 +17,7 @@ def download_data(dst: Path):  # pragma: no cover
         "https://github.com/itamarfaran/corrpops-python/raw/refs/heads/main/data/"
         + dst.name
     )
-    warnings.warn(f"downloading {dst.name} from corrpops-python github repo")
+    logger.warning(f"loaders: downloading {dst.name} from corrpops-python github repo")
     if not dst.parent.exists():
         dst.parent.mkdir()
     urllib.request.urlretrieve(src, dst)

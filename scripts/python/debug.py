@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from corrpops.data.loaders import load_data
-from corrpops.data.preproccessing import preprocess
+from corrpops.data.preprocessing import preprocess
 from corrpops.model import estimator, link_functions
 from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
 
@@ -17,9 +17,9 @@ if REAL_DATA:
     theta, alpha = None, None
     data = load_data("tga_aal")
     control, diagnosed, dropped_subjects, dropped_columns = preprocess(
-        data["control"], data["diagnosed"]
+        data["control"], data["diagnosed"], max_percent_omitted=0.05,
     )
-    minimize_kwargs = {"options": {"gtol": 1e-4}}
+    minimize_kwargs = {"options": {"gtol": 1e-3}}
 else:
     theta, alpha, _ = build_parameters(
         p=10,

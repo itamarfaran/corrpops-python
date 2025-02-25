@@ -344,15 +344,20 @@ class CorrPopsOptimizer:
                         break
 
             if self.early_stop:
-                maximized = steps[-1]["value"] >= steps[-2]["value"]
-                if maximized and steps[-1]["status"] == 0:
+                if (
+                    i > self.min_iter
+                    and steps[-1]["value"] > steps[-2]["value"]
+                    and steps[-1]["status"] == 0
+                    and steps[-2]["status"] == 0
+                ):
+                    theta = steps[-2]["theta"]
+                    alpha = steps[-2]["alpha"]
                     steps.pop(-1)
-                    theta = steps[-1]["theta"]
-                    alpha = steps[-1]["alpha"]
+                    stop = True
+
                     warnings.warn(
                         "early stopping used; last iteration didn't minimize target"
                     )
-                    stop = True
 
             if stop:
                 break

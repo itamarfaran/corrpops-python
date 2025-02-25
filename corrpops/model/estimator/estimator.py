@@ -220,27 +220,19 @@ class CorrPopsEstimator:
         if compute_cov and self.covariance_estimator is not None:
             logger.info("estimator:fit: run covariance_estimator.compute")
             self.compute_covariance(
-                control_arr=control_arr, diagnosed_arr=diagnosed_arr
+                control_arr=vector_to_triangle(control_arr, diag_value=1),
+                diagnosed_arr=vector_to_triangle(diagnosed_arr, diag_value=1),
             )
         return self
 
     def compute_covariance(self, control_arr: np.ndarray, diagnosed_arr: np.ndarray):
-        try:
-            self.cov_ = self.covariance_estimator.compute(
-                control_arr=control_arr,
-                diagnosed_arr=diagnosed_arr,
-                link_function=self.link_function,
-                optimizer_results=self.optimizer_results_,
-                non_positive=self.non_positive,
-            )
-        except ValueError:
-            self.cov_ = self.covariance_estimator.compute(
-                control_arr=triangle_to_vector(control_arr),
-                diagnosed_arr=triangle_to_vector(diagnosed_arr),
-                link_function=self.link_function,
-                optimizer_results=self.optimizer_results_,
-                non_positive=self.non_positive,
-            )
+        self.cov_ = self.covariance_estimator.compute(
+            control_arr=triangle_to_vector(control_arr),
+            diagnosed_arr=triangle_to_vector(diagnosed_arr),
+            link_function=self.link_function,
+            optimizer_results=self.optimizer_results_,
+            non_positive=self.non_positive,
+        )
         return self
 
     def inference(

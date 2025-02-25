@@ -19,6 +19,7 @@ if REAL_DATA:
     control, diagnosed, dropped_subjects, dropped_columns = preprocess(
         data["control"], data["diagnosed"]
     )
+    minimize_kwargs = {"options": {"gtol": 1e-4}}
 else:
     theta, alpha, _ = build_parameters(
         p=10,
@@ -43,6 +44,7 @@ else:
         random_state=12,
     )
     control, diagnosed = control[0], diagnosed[0]
+    minimize_kwargs = {"options": {}}
 
 
 model = estimator.CorrPopsEstimator(
@@ -52,6 +54,7 @@ model = estimator.CorrPopsEstimator(
     optimizer=estimator.CorrPopsOptimizer(
         mat_reg_const=0.1,
         early_stop=True,
+        minimize_kwargs=minimize_kwargs,
         verbose=True,
     ),
     non_positive="warn",
@@ -71,7 +74,10 @@ new_model = estimator.CorrPopsEstimator.from_json(
     new_model_json,
     model.link_function,
     non_positive="warn",
-).compute_covariance(control, diagnosed)
+).compute_covariance(
+    control_arr=control,
+    diagnosed_arr=diagnosed,
+)
 
 new_model.alpha_ = (
     new_model.alpha_ - np.median(new_model.alpha_) + new_model.link_function.null_value

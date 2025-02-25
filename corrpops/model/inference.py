@@ -38,7 +38,7 @@ def inference(
         "std": std_const * alpha_sd,
         "z_value": (alpha - link_function.null_value) / alpha_sd,
         "ci_lower": alpha - critical_value * alpha_sd,
-        "ci_upper": alpha - critical_value * alpha_sd,
+        "ci_upper": alpha + critical_value * alpha_sd,
     }
 
     if alternative == "smaller":

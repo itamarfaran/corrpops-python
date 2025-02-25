@@ -122,7 +122,7 @@ def test_generalized_wishart_rvs(parameters, size):
     assert not matrix.is_positive_definite(positive_semidefinite).all()
 
     with pytest.raises(ValueError):  # not positive_semidefinite
-        scale = v @ np.diag(np.arange(p) - 2) @ v.T
+        scale = np.linalg.multi_dot((v, np.diag(np.arange(p) - 2), v.T))
         wishart.generalized_wishart_rvs(
             df=2,
             scale=scale,
@@ -132,7 +132,7 @@ def test_generalized_wishart_rvs(parameters, size):
         )
 
     with pytest.raises(ValueError):  # not symmetric
-        scale = v @ np.diag(np.arange(p) + 2) @ v
+        scale = np.linalg.multi_dot((v, np.diag(np.arange(p) + 2), v))
         wishart.generalized_wishart_rvs(
             df=2,
             scale=scale,

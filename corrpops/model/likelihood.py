@@ -36,7 +36,11 @@ def sum_of_squares(
     if inv_sigma is None:
         sse = np.sum(g11 * (0.5 * g11 - diagnosed_arr.mean(0)))
     else:
-        sse = np.squeeze((0.5 * g11 - diagnosed_arr.mean(0)) @ inv_sigma @ g11[:, None])
+        sse = np.squeeze(
+            np.linalg.multi_dot(
+                ((0.5 * g11 - diagnosed_arr.mean(0)), inv_sigma, g11[:, None])
+            )
+        )
 
     sse *= diagnosed_arr.shape[0]
     if reg_lambda > 0.0:

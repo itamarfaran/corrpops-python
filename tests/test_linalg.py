@@ -40,9 +40,11 @@ def test_is_positive_definite():
     v = stats.ortho_group.rvs(5, random_state=7549)
     w = np.arange(5)
 
-    assert matrix.is_positive_definite(v @ np.diag(w + 1) @ v.T)
-    assert not matrix.is_positive_definite(v @ np.diag(w - 1) @ v.T)
-    assert not matrix.is_positive_definite(v @ np.diag(w + 1) @ v)
+    assert matrix.is_positive_definite(np.linalg.multi_dot((v, np.diag(w + 1), v.T)))
+    assert not matrix.is_positive_definite(
+        np.linalg.multi_dot((v, np.diag(w - 1), v.T))
+    )
+    assert not matrix.is_positive_definite(np.linalg.multi_dot((v, np.diag(w + 1), v)))
 
 
 @pytest.mark.parametrize(
@@ -91,8 +93,8 @@ def test_fill_other_triangle():
 )
 def test_regularize_matrix(p, const, method):
     v = stats.ortho_group.rvs(p, random_state=7549)
-    orig = v @ np.diag(1 + np.arange(p)) @ v.T
-    singular = v @ np.diag(np.arange(p)) @ v.T
+    orig = np.linalg.multi_dot((v, np.diag(1 + np.arange(p)), v.T))
+    singular = np.linalg.multi_dot((v, np.diag(np.arange(p)), v.T))
 
     np.testing.assert_array_equal(
         matrix.regularize_matrix(orig, const, method, only_if_singular=True),

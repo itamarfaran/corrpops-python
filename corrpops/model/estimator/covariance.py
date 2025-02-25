@@ -169,20 +169,26 @@ class GeeCovarianceEstimator(CovarianceEstimator):
 
     @staticmethod
     def calc_i0(properties: _GeeProperties) -> np.ndarray:
-        return properties["data"].shape[0] * (
-            properties["jacobian"].T @ properties["inv_cov"] @ properties["jacobian"]
+        return properties["data"].shape[0] * np.linalg.multi_dot(
+            (properties["jacobian"].T, properties["inv_cov"], properties["jacobian"])
         )
 
     @staticmethod
     def calc_i1(properties: _GeeProperties) -> np.ndarray:
         residuals = properties["data"] - properties["expected_value"]
-        covariance = residuals.T @ residuals / properties["df"]
-        return properties["data"].shape[0] * (
-            properties["jacobian"].T
-            @ properties["inv_cov"]
-            @ covariance
-            @ properties["inv_cov"]
-            @ properties["jacobian"]
+        return (
+            np.linalg.multi_dot(
+                (
+                    properties["jacobian"].T,
+                    properties["inv_cov"],
+                    residuals.T,
+                    residuals,
+                    properties["inv_cov"],
+                    properties["jacobian"],
+                )
+            )
+            * properties["data"].shape[0]
+            / properties["df"]
         )
 
     def compute(
@@ -212,4 +218,4 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         i0 = self.calc_i0(control_properties) + self.calc_i0(diagnosed_properties)
         i1 = self.calc_i1(control_properties) + self.calc_i1(diagnosed_properties)
         i0_inv = np.linalg.inv(i0)
-        return i0_inv @ i1 @ i0_inv
+        return np.linalg.multi_dot((i0_inv, i1, i0_inv))

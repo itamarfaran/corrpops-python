@@ -33,7 +33,7 @@ def test_efron_rms(size):
 
     v = stats.ortho_group.rvs(5, random_state=rng)
     w = np.arange(5)
-    scale = v @ np.diag(1 + w) @ v.T
+    scale = np.linalg.multi_dot((v, np.diag(1 + w), v.T))
 
     p = scale.shape[0]
     df = 2 * p
@@ -54,11 +54,11 @@ def test_efron_rms(size):
         efron_rms.efron_rms(np.arange(16).reshape((4, 4)))
 
     with pytest.raises(ValueError):
-        efron_rms.efron_rms(v @ np.diag(w) @ v.T, check_psd=True)
+        efron_rms.efron_rms(np.linalg.multi_dot((v, np.diag(w), v.T)), check_psd=True)
 
     with pytest.raises(ValueError):
         efron_rms.efron_rms(
-            matrix.cov_to_corr(v @ np.diag(w) @ v.T),
+            matrix.cov_to_corr(np.linalg.multi_dot((v, np.diag(w), v.T))),
             check_psd=True,
         )
 

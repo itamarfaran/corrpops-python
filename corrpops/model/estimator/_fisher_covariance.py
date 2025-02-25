@@ -54,8 +54,16 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
 
         jacobian = optimize.approx_fprime(optimizer_results.alpha, jacobian_func)
         residuals = control_arr - expected_value
-        left = jacobian.T @ inv_cov @ residuals.T
-        return left @ left.T
+        return np.linalg.multi_dot(
+            (
+                jacobian.T,
+                inv_cov,
+                residuals.T,
+                residuals,
+                inv_cov,
+                jacobian,
+            )
+        )
 
     @staticmethod
     def compute_by_hessian(
@@ -122,4 +130,6 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
             optimizer_results=optimizer_results,
         )
         inv_fisher_by_hessian = np.linalg.inv(fisher_by_hessian)
-        return inv_fisher_by_hessian @ fisher_by_gradiant @ inv_fisher_by_hessian
+        return np.linalg.multi_dot(
+            (inv_fisher_by_hessian, fisher_by_gradiant, inv_fisher_by_hessian)
+        )

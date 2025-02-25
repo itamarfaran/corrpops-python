@@ -31,7 +31,7 @@ def build_parameters(
     )
     theta = force_symmetry(cov_to_corr(theta.T @ theta))
     stds = np.diag(np.abs(stats.logistic.rvs(size=p, random_state=rng)))
-    sigma = stds @ theta @ stds
+    sigma = np.linalg.multi_dot((stds, theta, stds))
 
     n_non_null_alphas = int(percent_alpha * p)
     non_null_alphas = rng.choice(p, n_non_null_alphas, replace=False)

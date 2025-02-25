@@ -79,7 +79,7 @@ def covariance_of_fisher_correlation(
     row, col = np.diag_indices(grad.shape[-1])
     grad[..., row, col] = 1 / (1 - triangle_to_vector(arr) ** 2)
 
-    return grad @ result @ grad
+    return np.linalg.multi_dot((grad, result, grad))
 
 
 def estimated_df(

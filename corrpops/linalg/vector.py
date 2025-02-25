@@ -3,6 +3,8 @@ from typing import Literal, Optional, Tuple, Union
 import numpy as np
 import numpy.typing as npt
 
+from linalg.matrix import is_positive_definite
+
 
 def mahalanobis(
     x: npt.ArrayLike,
@@ -10,19 +12,25 @@ def mahalanobis(
     m: Optional[npt.ArrayLike] = None,
     inverse: bool = True,
     sqrt: bool = True,
-) -> float:
+    check_psd: bool = False,
+) -> Union[np.ndarray, float]:
     x = np.atleast_2d(x)
     if y is not None:
         x = x - np.atleast_2d(y)
     if m is None:
-        out = np.sum(x**2)
+        out = np.sum(x**2, axis=-1)
     else:
+        m = np.asarray(m)
+        if m.ndim != 2 or m.shape[0] != m.shape[1]:
+            raise ValueError("m must be a 2d square matrix")
+        if check_psd:
+            if not np.allclose(m, m.T) or not is_positive_definite(m):
+                raise ValueError("m is not positive semi definite")
         if inverse:
             m = np.linalg.inv(m)
-        else:
-            m = np.asarray(m)
-        out = np.squeeze(x @ m @ np.swapaxes(x, -1, -2))
-
+        out = np.squeeze(
+            np.diagonal(x @ m @ np.swapaxes(x, -1, -2), axis1=-2, axis2=-1)
+        )
     return np.sqrt(out) if sqrt else out
 
 

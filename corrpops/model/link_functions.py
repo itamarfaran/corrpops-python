@@ -56,15 +56,15 @@ class BaseLinkFunction(ABC):
         if name != self.name:
             raise ValueError("link function mismatch")
 
-    def __call__(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def __call__(self, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         return self.forward(t=t, a=a, d=d)
 
     @abstractmethod
-    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def forward(self, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         pass  # pragma: no cover
 
     @abstractmethod
-    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def inverse(self, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         pass  # pragma: no cover
 
 
@@ -72,14 +72,14 @@ class MultiplicativeIdentity(BaseLinkFunction):
     name_ = "multiplicative_identity"
     null_value_ = 1.0
 
-    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def forward(self, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
         a[np.diag_indices_from(a)] = 1
         return vector_to_triangle(t) * a
 
-    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def inverse(self, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a @ a.T
@@ -91,14 +91,14 @@ class AdditiveQuotient(BaseLinkFunction):
     name_ = "additive_quotient"
     null_value_ = 0.0
 
-    def forward(self, *, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def forward(self, t: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a + a.T
         a[np.diag_indices_from(a)] = 0
         return vector_to_triangle(t) / (1 + a)
 
-    def inverse(self, *, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
+    def inverse(self, data: np.ndarray, a: np.ndarray, d: int) -> np.ndarray:
         a = self.transformer.transform(a)
         a = a.reshape((int(a.size / d), d))
         a = a + a.T

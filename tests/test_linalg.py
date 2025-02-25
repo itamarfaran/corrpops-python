@@ -143,31 +143,56 @@ def test_regularize_matrix(p, const, method):
             np.testing.assert_allclose(regularized_diag, 0.0)
 
 
-def test_mahalanobis():
+@pytest.mark.parametrize("with_eye", [True, False])
+def test_mahalanobis(with_eye):
     rng = np.random.default_rng(858)
     x = rng.random(size=10)
     y = rng.random(size=10)
+    eye = np.eye(10) if with_eye else None
 
-    np.testing.assert_array_equal(
-        vector.mahalanobis(x),
+    np.testing.assert_allclose(
+        vector.mahalanobis(x, m=eye),
         vector.norm_p(x),
     )
-    np.testing.assert_array_equal(
-        vector.mahalanobis(x, sqrt=False),
+    np.testing.assert_allclose(
+        vector.mahalanobis(x, m=eye, sqrt=False),
         vector.norm_p(x) ** 2,
     )
-    np.testing.assert_array_equal(
-        vector.mahalanobis(x, y),
+    np.testing.assert_allclose(
+        vector.mahalanobis(x, y, m=eye),
         vector.norm_p(x, y),
     )
-    np.testing.assert_array_equal(
-        vector.mahalanobis(x, y, np.eye(10)),
+    np.testing.assert_allclose(
+        vector.mahalanobis(x, y, m=eye, inverse=False),
         vector.norm_p(x, y),
     )
-    np.testing.assert_array_equal(
-        vector.mahalanobis(x, y, np.eye(10), inverse=False),
-        vector.norm_p(x, y),
-    )
+    assert vector.mahalanobis(
+        np.stack([x] * 2),
+        m=eye,
+        inverse=False,
+    ).shape == (2,)
+    assert vector.mahalanobis(
+        np.stack([x] * 4).reshape((2, 2, 10)),
+        m=eye,
+        inverse=False,
+    ).shape == (2, 2)
+
+    with pytest.raises(ValueError):
+        vector.mahalanobis(
+            np.stack([x] * 2),
+            m=np.stack([np.eye(10)] * 2),
+        )
+    with pytest.raises(ValueError):
+        vector.mahalanobis(
+            np.stack([x] * 2),
+            m=rng.random((10, 11)),
+        )
+    with pytest.raises(ValueError):
+        vector.mahalanobis(
+            np.stack([x] * 2),
+            m=rng.random((10, 10)),
+            check_psd=True,
+        )
 
 
 @pytest.mark.parametrize(

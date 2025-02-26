@@ -1,5 +1,6 @@
 import logging
-from typing import Collection, Optional, Tuple, Union
+from collections import namedtuple
+from typing import Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -7,58 +8,122 @@ logger = logging.getLogger("corrpops")
 logging.basicConfig(level=logging.INFO)
 
 
-def count_na_by_threshold(arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    na_counts = np.isnan(arr).mean(1).mean(0)
-    thresholds = np.sort(np.unique(np.append(na_counts, [0, 1])))
-    percent_omitted = np.array([np.mean(na_counts >= t) for t in thresholds])
-    return thresholds, percent_omitted
+NaSummary = namedtuple("NaSummary", ["index", "columns", "percent_na"])
+
+
+def calculate_percent_na(arr: np.ndarray, threshold: float = 0) -> List[NaSummary]:
+    results = []
+    for index in np.ndindex(arr.shape[:-2]):
+        percents_na = []
+        columns = []
+        a = arr[index].copy()
+
+        while a.shape[-1]:
+            percent_na = np.isnan(a).sum(-1) / (a.shape[-1] - 1)
+            max_ = percent_na.max()
+
+            if max_ <= threshold:
+                break
+
+            argmax_ = percent_na.argmax()
+            a = np.delete(a, argmax_, -2)
+            a = np.delete(a, argmax_, -1)
+            percents_na.append(max_)
+            columns.append(argmax_ + len(columns))
+
+        columns.sort()
+        percents_na = [p for _, p in sorted(zip(columns, percents_na))]
+        results.append(NaSummary(index, columns, percents_na))
+    return results
+
+
+def na_thresholds(
+    arr: np.ndarray,
+    threshold: float = 0,
+) -> Tuple[List[NaSummary], Dict[int, float]]:
+    na_summaries = calculate_percent_na(arr, threshold)
+    results_columns = [summary.columns for summary in na_summaries]
+
+    unique_columns = np.unique(np.concatenate(results_columns).astype(int))
+    n = np.prod(arr.shape[:-2])
+    thresholds = {
+        col: sum(col in cols for cols in results_columns) / n for col in unique_columns
+    }
+    return na_summaries, thresholds
+
+
+def drop_columns_by_max_omitted(
+    arr: np.ndarray,
+    max_omitted: Union[float, int] = 0,
+) -> Tuple[np.ndarray, np.ndarray]:
+    if isinstance(max_omitted, float):
+        if 0 <= max_omitted <= 1:
+            max_omitted = int(max_omitted * arr.shape[-1])
+        else:
+            raise ValueError(
+                f"expected max_omitted to be an integer or a "
+                f"float in [0, 1], got {max_omitted} instead"
+            )
+    _, thresholds = na_thresholds(arr)
+    sorted_thresholds = sorted(thresholds.items(), key=lambda kv: kv[1], reverse=True)
+    idx_drop = [col for col, _ in sorted_thresholds[:max_omitted]]
+    arr = np.delete(arr, idx_drop, -2)
+    arr = np.delete(arr, idx_drop, -1)
+    return arr, np.array(idx_drop)
 
 
 def drop_columns_by_na_threshold(
     arr: np.ndarray,
-    threshold: Optional[float] = None,
-    max_percent_omitted: Union[float, int, None] = None,
+    threshold: Union[float, int] = 1.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    if isinstance(max_percent_omitted, int):
-        max_percent_omitted = max_percent_omitted / arr.shape[-1]
-    if isinstance(max_percent_omitted, float) and not 0 <= max_percent_omitted <= 1:
-        raise ValueError("expected max_percent_omitted to be in [0, 1]")
-
-    if threshold is None:
-        thresholds, percents_omitted = count_na_by_threshold(arr)
-
-        if max_percent_omitted is not None:
-            thresholds = thresholds[percents_omitted <= max_percent_omitted]
-            percents_omitted = percents_omitted[percents_omitted <= max_percent_omitted]
-            threshold = thresholds[percents_omitted.argmax()]
-
-        else:
-            threshold = np.max(thresholds[thresholds < 1])
-        logger.warning(f"preprocessing: selected {threshold.round(5)} as threshold")
-
+    if isinstance(threshold, int):
+        threshold = min(threshold / arr.shape[-1], 1.0)
     elif not 0 <= threshold <= 1:
-        raise ValueError("expected threshold to be in [0, 1]")
+        raise ValueError(f"expected threshold to be in [0, 1], got {threshold} instead")
 
-    na_counts = np.isnan(arr).mean(1).mean(0)
-    idx_keep = np.argwhere(na_counts < threshold).flatten()
-    idx_drop = np.argwhere(na_counts >= threshold).flatten()
-    arr = arr[..., idx_keep, :][..., :, idx_keep]
-    return arr, idx_drop
+    idx_drop = []
+    for _ in range(arr.shape[-1]):
+        _, thresholds = na_thresholds(arr)
+        max_threshold = max(thresholds.values(), default=0.0)
+        if max_threshold < threshold:
+            break
+
+        current_drop = [
+            col for col, percent in thresholds.items() if percent >= max_threshold
+        ]
+        arr = np.delete(arr, current_drop, -2)
+        arr = np.delete(arr, current_drop, -1)
+        idx_drop.extend([i + sum(j <= i for j in idx_drop) for i in current_drop])
+    return arr, np.array(idx_drop)
 
 
 def preprocess(
     control: np.ndarray,
     diagnosed: np.ndarray,
     threshold: Optional[float] = None,
-    max_percent_omitted: Union[float, int, None] = None,
+    max_omitted: Union[float, int] = None,
     subset: Optional[Collection[int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     arr = np.concatenate((control, diagnosed))
+    row, col = np.diag_indices(arr.shape[-1])
+    arr[..., row, col] = 1.0
 
     if subset is not None:
         arr = arr[..., subset, :][..., :, subset]
 
-    arr, dropped_columns = drop_columns_by_na_threshold(arr, threshold, max_percent_omitted)
+    if max_omitted is None:
+        if threshold is None:
+            arr, dropped_columns = drop_columns_by_na_threshold(arr)
+        else:
+            arr, dropped_columns = drop_columns_by_na_threshold(arr, threshold)
+    else:
+        if threshold is None:
+            arr, dropped_columns = drop_columns_by_max_omitted(arr, max_omitted)
+        else:
+            raise ValueError(
+                "at most one of 'threshold', 'max_omitted' can be not none"
+            )
+
     dropped_subjects = np.argwhere(np.isnan(arr).any(axis=(1, 2))).flatten()
 
     control_indices = np.arange(0, control.shape[0])
@@ -72,17 +137,17 @@ def preprocess(
     if len(dropped_control_indices):
         logger.warning(
             f"preprocessing: dropped {len(dropped_control_indices)} control subjects: "
-            + ", ".join(str(i) for i in dropped_control_indices)
+            + ", ".join(str(i) for i in sorted(dropped_control_indices))
         )
     if len(dropped_diagnosed_indices):
         logger.warning(
             f"preprocessing: dropped {len(dropped_diagnosed_indices)} diagnosed subjects: "
-            + ", ".join(str(i) for i in dropped_diagnosed_indices)
+            + ", ".join(str(i) for i in sorted(dropped_diagnosed_indices))
         )
     if len(dropped_columns):
         logger.warning(
             f"preprocessing: dropped {len(dropped_columns)} columns "
-            + ", ".join(str(i) for i in dropped_columns)
+            + ", ".join(str(i) for i in sorted(dropped_columns))
         )
 
     return (

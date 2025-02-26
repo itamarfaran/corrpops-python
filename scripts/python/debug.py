@@ -17,7 +17,7 @@ if REAL_DATA:
     theta, alpha = None, None
     data = load_data("tga_aal")
     control, diagnosed, dropped_subjects, dropped_columns = preprocess(
-        data["control"], data["diagnosed"], max_percent_omitted=0.05,
+        data["control"], data["diagnosed"], max_omitted=4
     )
     minimize_kwargs = {"options": {"gtol": 1e-3}}
 else:

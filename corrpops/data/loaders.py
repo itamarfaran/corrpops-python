@@ -1,13 +1,12 @@
-import logging
 from pathlib import Path
 from typing import Dict, Literal, Union
 
 import numpy as np
 
+from corrpops_logger import corrpops_logger
 from linalg.triangle_and_vector import vector_to_triangle
 
-logger = logging.getLogger("corrpops")
-logging.basicConfig(level=logging.INFO)
+logger = corrpops_logger()
 
 
 def download_data(dst: Path):  # pragma: no cover

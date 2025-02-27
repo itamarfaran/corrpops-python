@@ -3,6 +3,7 @@ import inspect
 import numpy as np
 import pytest
 
+from corrpops.corrpops_logger import corrpops_logger
 from corrpops.data.preprocessing import (
     calculate_percent_na,
     na_thresholds,
@@ -10,6 +11,8 @@ from corrpops.data.preprocessing import (
     drop_columns_by_max_omitted,
     preprocess,
 )
+
+corrpops_logger().setLevel(40)
 
 
 def assert_shape(a, shape):

@@ -1,9 +1,9 @@
 import copy
-import logging
 from typing import Any, Dict, Optional, Union, Literal
 
 import numpy as np
 
+from corrpops_logger import corrpops_logger
 from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.covariance import CovarianceEstimator, GeeCovarianceEstimator
@@ -14,8 +14,7 @@ from model.estimator.optimizer import (
 from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction, MultiplicativeIdentity
 
-logger = logging.getLogger("corrpops")
-logging.basicConfig(level=logging.INFO)
+logger = corrpops_logger()
 
 
 _init_value_error_msg = (

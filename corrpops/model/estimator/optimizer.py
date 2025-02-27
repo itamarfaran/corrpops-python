@@ -1,4 +1,3 @@
-import logging
 import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -8,14 +7,14 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 import numpy as np
 from scipy import linalg, optimize
 
+from corrpops_logger import corrpops_logger
 from linalg.matrix import is_positive_definite, regularize_matrix
 from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from linalg.vector import norm_p
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
 
-logger = logging.getLogger("corrpops")
-logging.basicConfig(level=logging.INFO)
+logger = corrpops_logger()
 
 
 def format_time_delta(time_delta: timedelta) -> str:

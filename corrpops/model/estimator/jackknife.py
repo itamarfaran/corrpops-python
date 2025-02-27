@@ -1,4 +1,3 @@
-import logging
 import warnings
 from collections import namedtuple
 from typing import Any, Dict, List, Literal, Optional, Tuple, TypedDict
@@ -12,7 +11,7 @@ try:
 except ModuleNotFoundError:
     _ray_installed: bool = False
 
-
+from corrpops_logger import corrpops_logger
 from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
 from model.covariance_of_correlation import average_covariance_of_correlation
 from model.estimator.estimator import CorrPopsEstimator
@@ -21,8 +20,7 @@ from model.inference import inference, wilks_test, WilksTestResult
 from model.link_functions import BaseLinkFunction
 from model.estimator.optimizer import CorrPopsOptimizer
 
-logger = logging.getLogger("corrpops")
-logging.basicConfig(level=logging.INFO)
+logger = corrpops_logger()
 
 
 JackknifeConstantArgs = namedtuple(

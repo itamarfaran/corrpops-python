@@ -3,9 +3,12 @@ import itertools
 import numpy as np
 import pytest
 
+from corrpops.corrpops_logger import corrpops_logger
 from corrpops.linalg.triangle_and_vector import triangle_to_vector
 from corrpops.model import estimator, link_functions
 from corrpops.simulation.sample import build_parameters
+
+corrpops_logger().setLevel(30)
 
 
 @pytest.mark.parametrize(

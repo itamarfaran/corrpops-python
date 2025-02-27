@@ -1,11 +1,11 @@
-import logging
 from collections import namedtuple
 from typing import Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-logger = logging.getLogger("corrpops")
-logging.basicConfig(level=logging.INFO)
+from corrpops_logger import corrpops_logger
+
+logger = corrpops_logger()
 
 
 NaSummary = namedtuple("NaSummary", ["index", "columns", "percent_na"])

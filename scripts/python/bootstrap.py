@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+import warnings
 import zipfile
 from collections import namedtuple
 from typing import List
@@ -9,6 +10,7 @@ import numpy as np
 import ray
 from scipy import stats
 
+from corrpops import corrpops_logger
 from corrpops.linalg.triangle_and_vector import triangle_to_vector
 from corrpops.model.estimator import CorrPopsEstimator
 from corrpops.model.link_functions import MultiplicativeIdentity
@@ -91,11 +93,13 @@ permutations: List[EstimateArguments] = [
 
 
 @ray.remote
-def _estimate(i_: int, args: EstimateArguments):
-    rng = np.random.default_rng(i_)
+def _estimate(dst_: str, args: EstimateArguments, seed: int):
+    corrpops_logger().setLevel(30)
+
     diagnosed_n = int(args.n * args.diagnosed_ratio)
     control_n = args.n - diagnosed_n
 
+    rng = np.random.default_rng(seed)
     theta, alpha, _ = build_parameters(
         p=args.p,
         percent_alpha=args.percent_alpha,
@@ -117,9 +121,14 @@ def _estimate(i_: int, args: EstimateArguments):
         random_state=rng,
     )
 
-    estimator = CorrPopsEstimator(
-        optimizer_kwargs={"verbose": False},
-    ).fit(control[0], diagnosed[0])
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="optimization reached maximum iterations"
+        )
+
+        estimator = CorrPopsEstimator(
+            optimizer_kwargs={"verbose": False},
+        ).fit(control[0], diagnosed[0])
 
     json_ = estimator.to_json()
     json_["simulation"] = {
@@ -128,7 +137,7 @@ def _estimate(i_: int, args: EstimateArguments):
         **args._asdict(),
     }
 
-    with gzip.open(f"{RESULTS_DIR}/{i_}.json.gz", "w") as f:
+    with gzip.open(dst_, "w") as f:
         f.write(json.dumps(json_).encode("utf-8"))
 
 
@@ -138,15 +147,27 @@ if __name__ == "__main__":
         running_results = []
 
         # don't forget to remove [:1]
-        for i, permutation in enumerate(permutations[:1]):
+        for i, permutation in enumerate(permutations):
+            dst = f"{RESULTS_DIR}/{i}.json.gz"
+            if os.path.isfile(dst):
+                continue
             if not is_invertible_arma(permutation.ar):
                 raise ValueError
-            run_id = _estimate.remote(i, permutation)
+            run_id = _estimate.remote(dst, permutation, i)
             running_results.append(run_id)
+            break  # for testing purposes
+
+        count_ = 1
         while running_results:
             done_results, running_results = ray.wait(running_results, num_returns=1)
-            print("+", end="")
-        print("")
+            if count_ % 100 == 0:
+                print(f" {count_}")
+            elif count_ % 10 == 0:
+                print(count_ % 100, end="")
+            else:
+                print("+", end="")
+            count_ += 1
+        print(f"\nfinished {count_} jobs")
 
     except Exception as ex:
         raise ex

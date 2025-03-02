@@ -56,7 +56,7 @@ def piece_wise_comparison(
         )
 
     if p_adjust_method == "bonferroni":
-        p_vals_adjusted = p_vals / p_vals.size
+        p_vals_adjusted = np.minimum(p_vals * p_vals.size, 1.0)
     elif _statsmodels_installed:
         p_vals_adjusted = multipletests(pvals=p_vals, method=p_adjust_method)[1]
     else:
@@ -67,14 +67,14 @@ def piece_wise_comparison(
         )
 
     return {
-        "control_means": control_means,
-        "control_vars": control_vars,
-        "control_lens": control_lens,
-        "diagnosed_means": diagnosed_means,
-        "diagnosed_vars": diagnosed_vars,
-        "diagnosed_lens": diagnosed_lens,
-        "t_vals": t_vals,
+        "control_mean": control_means,
+        "control_var": control_vars,
+        "control_len": control_lens,
+        "diagnosed_mean": diagnosed_means,
+        "diagnosed_var": diagnosed_vars,
+        "diagnosed_len": diagnosed_lens,
+        "t_value": t_vals,
         "df": df,
-        "p_vals": p_vals,
-        "p_vals_adjusted": p_vals_adjusted,
+        "p_value": p_vals,
+        "p_value_adjusted": p_vals_adjusted,
     }

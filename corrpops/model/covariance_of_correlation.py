@@ -47,10 +47,11 @@ def covariance_of_correlation(
     if non_positive != "ignore":
         which_positive = is_positive_definite(arr)
         if not which_positive.all():
+            msg = "some matrices are not symmetric positive semidefinite"
             if non_positive == "raise":
-                raise np.linalg.LinAlgError("some matrices are not positive definite")
+                raise np.linalg.LinAlgError(msg)
             elif non_positive == "warn":
-                warnings.warn("some matrices are not positive definite")
+                warnings.warn(msg)
             else:
                 raise ValueError(
                     f'non_positive should be one of "raise", "warn", "ignore", '

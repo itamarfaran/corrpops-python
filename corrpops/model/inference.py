@@ -9,10 +9,10 @@ try:
     from statsmodels.stats.multitest import multipletests
 
     _statsmodels_installed: bool = True
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     _statsmodels_installed: bool = False
 
-from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
+from linalg.triangle_and_vector import triangle_to_vector
 from .covariance_of_correlation import covariance_of_correlation
 from .link_functions import BaseLinkFunction
 
@@ -42,24 +42,26 @@ def inference(
     }
 
     if alternative == "smaller":
-        result["p_vals"] = stats.norm.cdf(result["z_value"])
+        result["p_value"] = stats.norm.cdf(result["z_value"])
     elif alternative == "larger":
-        result["p_vals"] = stats.norm.sf(result["z_value"])
+        result["p_value"] = stats.norm.sf(result["z_value"])
     elif alternative == "two-sided":
-        result["p_vals"] = 2 * stats.norm.sf(np.abs(result["z_value"]))
-    else:
+        result["p_value"] = 2 * stats.norm.sf(np.abs(result["z_value"]))
+    else:  # pragma: no cover
         raise ValueError(
             f"alternative should be one of ['two-sided', 'smaller', 'larger'], "
             f"got {alternative} instead"
         )
 
     if p_adjust_method == "bonferroni":
-        result["p_vals_adjusted"] = result["p_vals"] / result["p_vals"].size
+        result["p_value_adjusted"] = np.minimum(
+            result["p_value"] * result["p_value"].size, 1.0
+        )
     elif _statsmodels_installed:
-        result["p_vals_adjusted"] = multipletests(
-            pvals=result["p_vals"], method=p_adjust_method
+        result["p_value_adjusted"] = multipletests(
+            pvals=result["p_value"], method=p_adjust_method
         )[1]
-    else:
+    else:  # pragma: no cover
         raise ModuleNotFoundError(
             "missing optional dependency statsmodels. "
             "only p_adjust_method='bonferroni' is supported. "
@@ -86,7 +88,7 @@ def wilks_test(
     null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
     null_cov = covariance_of_correlation(null_mean, non_positive)
     g11 = link_function(
-        t=theta,
+        t=triangle_to_vector(theta),
         a=alpha,
         d=dim_alpha,
     )
@@ -94,21 +96,21 @@ def wilks_test(
     control_arr = triangle_to_vector(control_arr)
     diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
+    control_full_cov = covariance_of_correlation(theta, non_positive)
+    diagnosed_full_cov = covariance_of_correlation(g11, non_positive)
+
     try:
         full_log_likelihood = (
             stats.multivariate_normal.logpdf(
                 x=control_arr,
-                mean=theta,
-                cov=covariance_of_correlation(
-                    vector_to_triangle(theta),
-                    non_positive,
-                ),
+                mean=triangle_to_vector(theta),
+                cov=control_full_cov,
                 allow_singular=True,
             ).sum()
             + stats.multivariate_normal.logpdf(
                 x=diagnosed_arr,
                 mean=triangle_to_vector(g11),
-                cov=covariance_of_correlation(g11, non_positive),
+                cov=diagnosed_full_cov,
                 allow_singular=True,
             ).sum()
         )
@@ -126,7 +128,7 @@ def wilks_test(
         )
     except ValueError as ex:
         if "positive semidefinite" not in str(ex):
-            raise ex
+            raise ex  # pragma: no cover
         warnings.warn(
             "covariance matrix is not symmetric positive semidefinite, returning nan"
         )

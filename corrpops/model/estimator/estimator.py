@@ -259,7 +259,7 @@ class CorrPopsEstimator:
         return wilks_test(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
-            theta=self.theta_,
+            theta=vector_to_triangle(self.theta_),
             alpha=self.alpha_,
             link_function=self.link_function,
             dim_alpha=self.dim_alpha,

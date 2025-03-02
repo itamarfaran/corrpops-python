@@ -433,7 +433,7 @@ class CorrPopsJackknifeEstimator:
         return wilks_test(
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
-            theta=self.theta_,
+            theta=vector_to_triangle(self.theta_),
             alpha=self.alpha_,
             link_function=self.base_estimator.link_function,
             dim_alpha=self.base_estimator.dim_alpha,

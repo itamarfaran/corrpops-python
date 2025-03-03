@@ -4,12 +4,11 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 from numba import njit
 
-from linalg.matrix import fill_other_triangle, is_positive_definite
-from linalg.triangle_and_vector import triangle_to_vector
+from linalg import matrix, triangle_and_vector as tv
 
 
 @njit
-def _correlation_covariance(
+def _correlation_covariance(  # pragma: no cover
     m: np.ndarray,
     n: int,
     order_vector_i: np.ndarray,
@@ -45,27 +44,28 @@ def covariance_of_correlation(
     non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
     if non_positive != "ignore":
-        which_positive = is_positive_definite(arr)
+        which_positive = matrix.is_positive_definite(arr)
         if not which_positive.all():
             msg = "some matrices are not symmetric positive semidefinite"
             if non_positive == "raise":
                 raise np.linalg.LinAlgError(msg)
             elif non_positive == "warn":
                 warnings.warn(msg)
-            else:
+            else:  # pragma: no cover
                 raise ValueError(
                     f'non_positive should be one of "raise", "warn", "ignore", '
                     f"got {non_positive} instead",
                 )
 
+    # todo: support no numba?
     p = arr.shape[-1]
     result = _correlation_covariance(
         arr,
-        int(0.5 * p * (p - 1)),
+        tv.vectorized_dim(p),
         np.concatenate([np.repeat(i, p - i - 1) for i in range(p)]),
         np.concatenate([np.arange(i + 1, p) for i in range(p)]),
     )
-    result = fill_other_triangle(result)
+    result = matrix.fill_other_triangle(result)
     return result
 
 
@@ -73,12 +73,15 @@ def covariance_of_fisher_correlation(
     arr: np.ndarray,
     non_positive: Literal["raise", "warn", "ignore"] = "raise",
 ) -> np.ndarray:
+    p = arr.shape[-1]
+    row, col = np.diag_indices(p)
     arr = np.tanh(arr)
-    result = covariance_of_correlation(arr, non_positive)
+    arr[..., row, col] = 1.0
 
+    row, col = np.diag_indices(tv.vectorized_dim(p))
+    result = covariance_of_correlation(arr, non_positive)
     grad = np.zeros_like(result)
-    row, col = np.diag_indices(grad.shape[-1])
-    grad[..., row, col] = 1 / (1 - triangle_to_vector(arr) ** 2)
+    grad[..., row, col] = 1 / (1 - tv.triangle_to_vector(arr) ** 2)
 
     return np.linalg.multi_dot((grad, result, grad))
 
@@ -89,18 +92,19 @@ def estimated_df(
     only_diag: bool = False,
 ) -> float:
     if only_diag:
-        row, col = np.diag_indices_from(theo)
-        x = theo[..., row, col].flatten()
-        y = est[..., row, col].flatten()
+        row, col = np.diag_indices(theo.shape[-1])
+        x = theo[..., row, col]
+        y = est[..., row, col]
     else:
-        x = triangle_to_vector(theo, True)
-        y = triangle_to_vector(est, True)
+        x = tv.triangle_to_vector(theo, True)
+        y = tv.triangle_to_vector(est, True)
 
+    x, y = x.flatten(), y.flatten()
     return np.linalg.lstsq(x[:, np.newaxis], y)[0][0].item()
 
 
 def average_covariance_of_correlation(
-    arr,
+    arr: np.ndarray,
     fisher: bool = False,
     est_n: bool = False,
     only_diag: bool = True,
@@ -110,11 +114,10 @@ def average_covariance_of_correlation(
         cov = covariance_of_fisher_correlation(arr, non_positive)
     else:
         cov = covariance_of_correlation(arr, non_positive)
-
-    cov = cov.mean(tuple(i for i in range(cov.ndim - 2)))
+    cov = cov.mean(tuple(range(cov.ndim - 2)))
 
     if est_n:
-        mat = triangle_to_vector(arr)
+        mat = tv.triangle_to_vector(arr)
         est = np.swapaxes(mat, -1, -2) @ mat / np.prod(cov.shape[:-2])
         estimated_n = estimated_df(est=est, theo=cov, only_diag=only_diag)
         cov = cov / estimated_n

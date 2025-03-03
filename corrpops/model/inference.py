@@ -84,9 +84,10 @@ def wilks_test(
     link_function: BaseLinkFunction,
     dim_alpha: int = 1,
     non_positive: Literal["raise", "warn", "ignore"] = "raise",
+    use_numba: bool = True,
 ) -> WilksTestResult:
     null_mean = np.concatenate((control_arr, diagnosed_arr)).mean(0)
-    null_cov = covariance_of_correlation(null_mean, non_positive)
+    null_cov = covariance_of_correlation(null_mean, non_positive, use_numba)
     g11 = link_function(
         t=triangle_to_vector(theta),
         a=alpha,
@@ -96,8 +97,8 @@ def wilks_test(
     control_arr = triangle_to_vector(control_arr)
     diagnosed_arr = triangle_to_vector(diagnosed_arr)
 
-    control_full_cov = covariance_of_correlation(theta, non_positive)
-    diagnosed_full_cov = covariance_of_correlation(g11, non_positive)
+    control_full_cov = covariance_of_correlation(theta, non_positive, use_numba)
+    diagnosed_full_cov = covariance_of_correlation(g11, non_positive, use_numba)
 
     try:
         full_log_likelihood = (

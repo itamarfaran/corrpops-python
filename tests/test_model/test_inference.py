@@ -8,6 +8,7 @@ from scipy import stats
 
 from corrpops.model.inference import inference, wilks_test
 from corrpops.model.link_functions import MultiplicativeIdentity
+from tests.tests_utils import from_eigh, v_w
 
 link_function = MultiplicativeIdentity()
 
@@ -74,8 +75,7 @@ def test_wilks_wilks_test(parameters_and_sample, p: int = 5):
     assert isinstance(result.df, int)
     assert isinstance(result.p_val, float)
 
-    v = stats.ortho_group.rvs(p, random_state=7549)
-    w = np.arange(p)
+    v, w = v_w(p)
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -85,7 +85,7 @@ def test_wilks_wilks_test(parameters_and_sample, p: int = 5):
         result = wilks_test(
             control_arr=control,
             diagnosed_arr=diagnosed,
-            theta=v @ np.diag(w - 1) @ v.T,
+            theta=from_eigh(v, w - 1),
             alpha=alpha,
             link_function=link_function,
             non_positive="ignore",

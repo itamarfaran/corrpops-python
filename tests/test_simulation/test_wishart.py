@@ -6,6 +6,7 @@ from scipy import stats
 
 from corrpops.linalg import matrix
 from corrpops.simulation import wishart
+from tests.tests_utils import from_eigh, v_w
 
 
 def test_generate_covariance_with_random_effect(parameters):
@@ -108,13 +109,10 @@ def test_generalized_wishart_rvs(parameters, size):
     )
     assert not matrix.is_positive_definite(not_positive_definite).all()
 
-    v = stats.ortho_group.rvs(p, random_state=7689)
-    w = np.ones(p)
-    w[0] = 0
-    scale = v @ np.diag(w) @ v.T
+    v, w = v_w(p, random_state=7_689)
     positive_semidefinite = wishart.generalized_wishart_rvs(
         df=int(p * 2),
-        scale=scale,
+        scale=from_eigh(v, np.arange(p) > 0),
         random_effect=0.0,
         size=size,
         random_state=142,
@@ -122,7 +120,7 @@ def test_generalized_wishart_rvs(parameters, size):
     assert not matrix.is_positive_definite(positive_semidefinite).all()
 
     with pytest.raises(ValueError):  # not positive_semidefinite
-        scale = np.linalg.multi_dot((v, np.diag(np.arange(p) - 2), v.T))
+        scale = from_eigh(v, w - 1)
         wishart.generalized_wishart_rvs(
             df=2,
             scale=scale,
@@ -132,7 +130,7 @@ def test_generalized_wishart_rvs(parameters, size):
         )
 
     with pytest.raises(ValueError):  # not symmetric
-        scale = np.linalg.multi_dot((v, np.diag(np.arange(p) + 2), v))
+        scale = v @ v
         wishart.generalized_wishart_rvs(
             df=2,
             scale=scale,

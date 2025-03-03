@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from corrpops.statistics import arma, piece_wise_comparison
-from linalg import matrix
-from statistics import efron_rms
+from corrpops.linalg import matrix
+from corrpops.statistics import arma, efron_rms, piece_wise_comparison
+from tests.tests_utils import from_eigh, v_w
 
 
 def test_is_invertible_arma():
@@ -31,9 +31,8 @@ def test_efron_rms(size):
     else:
         size_ = size
 
-    v = stats.ortho_group.rvs(5, random_state=rng)
-    w = np.arange(5)
-    scale = np.linalg.multi_dot((v, np.diag(1 + w), v.T))
+    v, w = v_w(5)
+    scale = from_eigh(v, 1 + w)
 
     p = scale.shape[0]
     df = 2 * p
@@ -54,11 +53,11 @@ def test_efron_rms(size):
         efron_rms.efron_rms(np.arange(16).reshape((4, 4)))
 
     with pytest.raises(ValueError):
-        efron_rms.efron_rms(np.linalg.multi_dot((v, np.diag(w), v.T)), check_psd=True)
+        efron_rms.efron_rms(from_eigh(v, w), check_psd=True)
 
     with pytest.raises(ValueError):
         efron_rms.efron_rms(
-            matrix.cov_to_corr(np.linalg.multi_dot((v, np.diag(w), v.T))),
+            matrix.cov_to_corr(from_eigh(v, w)),
             check_psd=True,
         )
 

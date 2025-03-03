@@ -9,6 +9,7 @@ from corrpops.model.covariance_of_correlation import (
     covariance_of_correlation,
     covariance_of_fisher_correlation,
 )
+from tests.tests_utils import from_eigh, v_w
 
 DF = 100_000
 SIZE = 100_000
@@ -22,9 +23,8 @@ SIZE = 100_000
     ),
 )
 def test_covariance_of_correlation_shape(n: int, p: int):
-    v = stats.ortho_group.rvs(p, random_state=3548)
-    w = np.arange(p)
-    scale = matrix.cov_to_corr(np.linalg.multi_dot((v, np.diag(w + 1), v.T)))
+    v, w = v_w(p)
+    scale = matrix.cov_to_corr(from_eigh(v, w + 1))
 
     matrices = stats.wishart.rvs(
         df=5 * p,
@@ -37,7 +37,7 @@ def test_covariance_of_correlation_shape(n: int, p: int):
     assert result.shape[:-2] == matrices.shape[:-2]
     assert result.shape[-2] == result.shape[-1] == tv.vectorized_dim(p)
 
-    scale = matrix.cov_to_corr(np.linalg.multi_dot((v, np.diag(w - 1), v.T)))
+    scale = matrix.cov_to_corr(from_eigh(v, w - 1))
     with pytest.raises(ValueError):
         covariance_of_correlation(scale, non_positive="raise")
 
@@ -55,9 +55,9 @@ def test_covariance_of_correlation_shape(n: int, p: int):
     ),
 )
 def test_covariance_of_correlation_empirical(p, fisher):
-    v = stats.ortho_group.rvs(p, random_state=3548)
+    v, _ = v_w(p)
     w = np.linspace(1, 2, p)
-    scale = matrix.cov_to_corr(np.linalg.multi_dot((v, np.diag(w), v.T)))
+    scale = matrix.cov_to_corr(from_eigh(v, w))
 
     empirical = matrix.cov_to_corr(
         stats.wishart.rvs(

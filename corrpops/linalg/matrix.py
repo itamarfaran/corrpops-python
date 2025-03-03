@@ -9,7 +9,7 @@ def sqrt_diag(a: np.ndarray) -> np.ndarray:  # pragma: no cover
 
 def matrix_power(a: np.ndarray, power: float) -> np.ndarray:
     w, v = np.linalg.eigh(a)
-    w = np.eye(len(w)) * w**power
+    w = np.diag(w**power)
     return np.linalg.multi_dot((v, w, v.T))
 
 

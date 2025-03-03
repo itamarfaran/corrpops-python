@@ -6,6 +6,7 @@ from scipy import stats
 from statsmodels.stats.moment_helpers import cov2corr
 
 from corrpops.linalg import matrix, vector, triangle_and_vector as tv
+from tests.tests_utils import from_eigh, v_w
 
 
 def test_matrix_power():
@@ -37,14 +38,11 @@ def test_force_symmetry():
 
 
 def test_is_positive_definite():
-    v = stats.ortho_group.rvs(5, random_state=7549)
-    w = np.arange(5)
+    v, w = v_w(5)
 
-    assert matrix.is_positive_definite(np.linalg.multi_dot((v, np.diag(w + 1), v.T)))
-    assert not matrix.is_positive_definite(
-        np.linalg.multi_dot((v, np.diag(w - 1), v.T))
-    )
-    assert not matrix.is_positive_definite(np.linalg.multi_dot((v, np.diag(w + 1), v)))
+    assert matrix.is_positive_definite(from_eigh(v, w + 1))
+    assert not matrix.is_positive_definite(from_eigh(v, w - 1))
+    assert not matrix.is_positive_definite(v @ v)
 
 
 @pytest.mark.parametrize(
@@ -92,9 +90,9 @@ def test_fill_other_triangle():
     ),
 )
 def test_regularize_matrix(p, const, method):
-    v = stats.ortho_group.rvs(p, random_state=7549)
-    orig = np.linalg.multi_dot((v, np.diag(1 + np.arange(p)), v.T))
-    singular = np.linalg.multi_dot((v, np.diag(np.arange(p)), v.T))
+    v, w = v_w(p)
+    orig = from_eigh(v, w + 1)
+    singular = from_eigh(v, w)
 
     np.testing.assert_array_equal(
         matrix.regularize_matrix(orig, const, method, only_if_singular=True),

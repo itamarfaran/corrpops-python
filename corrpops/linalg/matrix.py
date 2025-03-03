@@ -75,6 +75,7 @@ def regularize_matrix(
             f"expected method to be one of 'constant', "
             f"'avg_diag', 'increase_diag, got {method} instead"
         )
+    # todo: why not consistent with `a + const * np.diag(diag)?`
     return (1 - const) * a + const * np.diag(diag)
 
 

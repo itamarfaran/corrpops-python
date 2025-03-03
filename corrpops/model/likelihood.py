@@ -18,7 +18,7 @@ def theta_of_alpha(
         data=diagnosed_arr, a=alpha, d=dim_alpha
     )
     arr = np.concatenate((control_arr, reversed_diagnosed_arr))
-    return arr.mean(0)
+    return arr.mean(axis=0)
 
 
 def sum_of_squares(
@@ -32,15 +32,12 @@ def sum_of_squares(
     reg_p: float = 2.0,
 ) -> float:
     g11 = triangle_to_vector(link_function(t=theta, a=alpha, d=dim_alpha))
+    diff = 0.5 * g11 - diagnosed_arr.mean(axis=0)
 
     if inv_sigma is None:
-        sse = np.sum(g11 * (0.5 * g11 - diagnosed_arr.mean(0)))
+        sse = np.sum(diff * g11)
     else:
-        sse = np.squeeze(
-            np.linalg.multi_dot(
-                ((0.5 * g11 - diagnosed_arr.mean(0)), inv_sigma, g11[:, None])
-            )
-        )
+        sse = np.linalg.multi_dot((diff, inv_sigma, g11)).squeeze()
 
     sse *= diagnosed_arr.shape[0]
     if reg_lambda > 0.0:

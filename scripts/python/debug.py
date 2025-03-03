@@ -53,7 +53,7 @@ model = estimator.CorrPopsEstimator(
     ),
     optimizer=estimator.CorrPopsOptimizer(
         mat_reg_const=0.1,
-        early_stop=True,
+        early_stop=not REAL_DATA,
         minimize_kwargs=minimize_kwargs,
         verbose=True,
     ),
@@ -87,6 +87,7 @@ gee_inference = pd.DataFrame(
     new_model.inference(
         p_adjust_method="fdr_bh",
         known_alpha=alpha,
+        std_const=1.1 if REAL_DATA else 1.0,
     )
 )
 gee_wilks_score = new_model.score(control, diagnosed)

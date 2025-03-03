@@ -29,7 +29,7 @@ def triangle_to_vector(
         raise ValueError(f"array is not square ({a.shape[-2]} != {a.shape[-1]}")
     if check and not np.allclose(a, np.swapaxes(a, -1, -2)):
         raise ValueError("a is not symmetric")
-    row, col = np.tril_indices(a.shape[-1], 0 if diag else -1)
+    row, col = np.triu_indices(a.shape[-1], 0 if diag else 1)
     return a[..., row, col]
 
 
@@ -40,7 +40,7 @@ def vector_to_triangle(
 ) -> np.ndarray:
     p = triangular_dim(a.shape[-1], diag=diag)
     out = np.zeros(a.shape[:-1] + (p, p))
-    row, col = np.tril_indices(p, 0 if diag else -1)
+    row, col = np.triu_indices(p, 0 if diag else 1)
     out[..., row, col] = a
     out = fill_other_triangle(out)
 

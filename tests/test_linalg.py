@@ -219,7 +219,7 @@ def test_triangle_to_vector():
     assert vector_.shape == (6,)
     assert tv.vectorized_dim(4, diag=False) == 6
 
-    np.testing.assert_array_equal(vector_, np.array([5, 9, 10, 13, 14, 15]))
+    np.testing.assert_array_equal(vector_, np.array([2, 3, 4, 7, 8, 12]))
 
     vector_ = tv.triangle_to_vector(triangle_, diag=True)
     assert vector_.shape == (10,)
@@ -227,7 +227,7 @@ def test_triangle_to_vector():
 
     np.testing.assert_array_equal(
         tv.triangle_to_vector(triangle_, diag=True),
-        np.array([1, 5, 6, 9, 10, 11, 13, 14, 15, 16]),
+        np.array([1, 2, 3, 4, 6, 7, 8, 11, 12, 16]),
     )
 
     with pytest.raises(ValueError):
@@ -244,7 +244,7 @@ def test_vector_to_triangle(diag):
     triangle_ = tv.vector_to_triangle(vector_, diag=diag)
     assert triangle_.shape == (m, m)
     assert tv.triangular_dim(6, diag=diag) == m
-    row, col = np.tril_indices(m, k=0 if diag else -1)
+    row, col = np.triu_indices(m, k=0 if diag else 1)
     np.testing.assert_array_equal(
         triangle_[row, col],
         vector_,

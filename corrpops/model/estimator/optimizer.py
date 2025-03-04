@@ -8,9 +8,7 @@ import numpy as np
 from scipy import linalg, optimize
 
 from corrpops_logger import corrpops_logger
-from linalg.matrix import is_positive_definite, regularize_matrix
-from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
-from linalg.vector import norm_p
+from linalg import matrix, triangle_and_vector as tv, vector
 from model.likelihood import theta_of_alpha, sum_of_squares
 from model.link_functions import BaseLinkFunction
 
@@ -67,7 +65,7 @@ class CorrPopsOptimizerResults:
         out["theta"] = out["theta"].tolist()
         out["alpha"] = out["alpha"].tolist()
         out["inv_cov"] = (
-            triangle_to_vector(out["inv_cov"], diag=True).tolist()
+            tv.triangle_to_vector(out["inv_cov"], diag=True).tolist()
             if out["inv_cov"] is not None
             else []
         )
@@ -84,7 +82,7 @@ class CorrPopsOptimizerResults:
             theta=np.array(json_["theta"]),
             alpha=np.array(json_["alpha"]),
             inv_cov=(
-                vector_to_triangle(np.array(json_["inv_cov"]), diag=True)
+                tv.vector_to_triangle(np.array(json_["inv_cov"]), diag=True)
                 if json_["inv_cov"]
                 else None
             ),
@@ -135,22 +133,43 @@ class CorrPopsOptimizer:
         self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
 
     @staticmethod
-    def _check_positive_definite(
+    def _check_positive_definite(  # pragma: no cover
         theta: np.ndarray,
         alpha: np.ndarray,
         link_function: BaseLinkFunction,
         dim_alpha: int,
     ):
         is_positive_definite_ = (
-            is_positive_definite(vector_to_triangle(theta)),
-            is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
+            matrix.is_positive_definite(tv.vector_to_triangle(theta)),
+            matrix.is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
         )
         if not all(is_positive_definite_):
             warnings.warn("initial parameters dont yield positive-definite matrices")
 
-    @property
-    def _log(self):
-        return logger.info if self.verbose else logger.debug
+    def _log(self, msg_type: Literal["start", "progress", "end"], **kwargs):
+        now = datetime.now()
+
+        if msg_type == "start":
+            msg = f"optimizer:optimize: start ({now})"
+        elif msg_type == "progress":
+            msg = (
+                f"optimizer:optimize: iteration {len(kwargs['steps'])} "
+                f"(elapsed: {(now - kwargs['start_time']).seconds}s, "
+                f"current: {(now - kwargs['last_start_time']).seconds}s, "
+                f"status: {kwargs['steps'][-1]['status']}, "
+                f" distance: {np.round(kwargs['distance'], 5)})"
+            )
+        elif msg_type == "end":
+            msg = (
+                f"optimizer:optimize: end ({now}) | "
+                f"iterations: {len(kwargs['steps'])}, "
+                f"total time: {format_time_delta(now - kwargs['start_time'])}"
+            )
+        else:  # pragma: no cover
+            raise ValueError(f"unrecognized msg_type {msg_type}")
+
+        (logger.info if self.verbose else logger.debug)(msg)
+        return now
 
     def get_params(self) -> Dict[str, Any]:
         return {
@@ -218,15 +237,7 @@ class CorrPopsOptimizer:
         theta0: Optional[np.ndarray] = None,
         weights: Optional[np.ndarray] = None,
     ) -> CorrPopsOptimizerResults:
-        p = (1 + np.sqrt(1 + 8 * diagnosed_arr.shape[1])) / 2
-
-        if p == round(p):
-            p = int(p)
-        else:
-            raise ValueError(
-                f"array shape ({diagnosed_arr.shape[-1]}) does "
-                f"not fit size of triangular matrix"
-            )
+        p = tv.triangular_dim(diagnosed_arr.shape[-1])
 
         if alpha0 is None:
             alpha = np.full((p, dim_alpha), link_function.null_value)
@@ -245,8 +256,9 @@ class CorrPopsOptimizer:
             theta = theta0
 
         self._check_positive_definite(theta, alpha, link_function, dim_alpha)
+
         if weights is not None:
-            weights = regularize_matrix(
+            weights = matrix.regularize_matrix(
                 weights,
                 const=self.mat_reg_const,
                 method=self.mat_reg_method,
@@ -268,11 +280,9 @@ class CorrPopsOptimizer:
             status=-1,
             optimize_results={},
         )
-        stop = False
-        start_time = datetime.now()
+        start_time = self._log("start")
 
-        self._log(f"optimizer:optimize: start ({start_time})")
-
+        i = -1
         for i in range(self.max_iter):
             last_start_time = datetime.now()
             if (
@@ -290,7 +300,6 @@ class CorrPopsOptimizer:
                 link_function=link_function,
                 dim_alpha=dim_alpha,
             )
-
             optimize_results = optimize.minimize(
                 partial(
                     sum_of_squares,
@@ -317,60 +326,43 @@ class CorrPopsOptimizer:
                 status=optimize_results.status,
                 optimize_results=optimize_results,
             )
-
             if self.stopping_rule == "abs_tol":
-                distance = norm_p(steps[-2]["alpha"], steps[-1]["alpha"], self.abs_p)
-                stop = distance < self.abs_tol
+                distance = vector.norm_p(steps[-2]["alpha"], steps[-1]["alpha"], self.abs_p)
+                threshold = self.abs_tol
             else:
                 distance = np.abs(steps[-2]["value"] - steps[-1]["value"])
-                stop = distance < (
-                    self.rel_tol * (np.abs(steps[-1]["value"]) + self.rel_tol)
-                )
-            stop = stop and i > self.min_iter
+                threshold = self.rel_tol * (np.abs(steps[-1]["value"]) + self.rel_tol)
 
             self._log(
-                f"optimizer:optimize: iteration {i} "
-                f"(elapsed: {(datetime.now() - start_time).seconds}s, "
-                f"current: {(datetime.now() - last_start_time).seconds}s, "
-                f"status: {steps[-1]['status']}, "
-                f" distance: {np.round(distance, 5)})"
+                "progress",
+                start_time=start_time,
+                last_start_time=last_start_time,
+                steps=steps,
+                distance=distance,
             )
-
-            if stop:
-                for j in range(self.min_iter):
-                    if steps[-(1 + j)]["status"] != 0:
-                        stop = False
-                        break
-
-            if self.early_stop:
-                if (
-                    i > self.min_iter
-                    and steps[-1]["value"] > steps[-2]["value"]
-                    and steps[-1]["status"] == 0
-                    and steps[-2]["status"] == 0
-                ):
-                    theta = steps[-2]["theta"]
-                    alpha = steps[-2]["alpha"]
-                    steps.pop(-1)
-                    stop = True
-
-                    warnings.warn(
-                        "early stopping used; last iteration didn't minimize target"
-                    )
-
-            if stop:
+            if (
+                distance < threshold
+                and i > self.min_iter
+                and all(s["status"] == 0 for s in steps[-self.min_iter:])
+            ):
+                break
+            if (
+                self.early_stop
+                and i > self.min_iter
+                and steps[-1]["value"] > steps[-2]["value"]
+                and steps[-1]["status"] == 0
+                and steps[-2]["status"] == 0
+            ):
+                steps.pop(-1)
+                theta = steps[-1]["theta"]
+                alpha = steps[-1]["alpha"]
+                warnings.warn("early stopping used; last iteration didn't minimize target")
                 break
 
-        if not stop:
+        if i + 1 >= self.max_iter:  # pragma: no cover
             warnings.warn("optimization reached maximum iterations")
 
-        total_time = datetime.now() - start_time
-        self._log(
-            f"optimizer:optimize: end ({datetime.now()}) | "
-            f"iterations: {len(steps)}, "
-            f"total time: {format_time_delta(total_time)}"
-        )
-
+        self._log("end", start_time=start_time, steps=steps)
         return CorrPopsOptimizerResults(
             theta=theta,
             alpha=alpha,

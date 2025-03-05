@@ -1,6 +1,6 @@
 /corrpops/data/.files/
 /data/*.mat
-/scripts/python/bootstraps/
-/scripts/python/jackknife_bootstraps/
+/scripts/bootstraps/
+/scripts/jackknife_bootstraps/
 **/.idea
 *.coverage

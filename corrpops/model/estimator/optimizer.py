@@ -88,9 +88,9 @@ class CorrPopsOptimizer:
     def __init__(
         self,
         *,
-        rel_tol: float = 1e-06,
-        abs_tol: float = 0.0,
-        abs_p: float = 2.0,
+        rel_tol: float = -1.0,
+        abs_tol: float = -1.0,
+        tol_p: float = -1.0,
         early_stop: bool = False,
         min_iter: int = 3,
         max_iter: int = 50,
@@ -100,12 +100,11 @@ class CorrPopsOptimizer:
         mat_reg_method: Literal["constant", "avg_diag", "increase_diag"] = "constant",
         mat_reg_only_if_singular: bool = False,
         minimize_kwargs: Optional[Dict[str, Any]] = None,
-        verbose: bool = True,
+        verbose: int = True,
         save_optimize_results: bool = False,
     ):
-        self.rel_tol = rel_tol
-        self.abs_tol = abs_tol
-        self.abs_p = abs_p
+        self._set_tol(rel_tol, abs_tol, tol_p)
+
         self.early_stop = early_stop
         self.min_iter = min_iter
         self.max_iter = max_iter
@@ -115,14 +114,36 @@ class CorrPopsOptimizer:
         self.mat_reg_method = mat_reg_method
         self.mat_reg_only_if_singular = mat_reg_only_if_singular
         self.minimize_kwargs = minimize_kwargs or {}
-        self.verbose = verbose
+        self.verbose = verbose > 0
         self.save_optimize_results = save_optimize_results
 
         if "options" not in self.minimize_kwargs:
             self.minimize_kwargs["options"] = {}
 
-        if rel_tol and abs_tol:
-            raise ValueError("exactly one of 'rel_tol', 'abs_tol' should be not none")
+    def _set_tol(self, rel_tol: float, abs_tol: float, tol_p: float):
+        if rel_tol > 0.0:
+            if abs_tol > 0.0:
+                raise ValueError(
+                    "at most one of 'rel_tol', " "'abs_tol' should greater than 0.0"
+                )
+            else:
+                self.rel_tol = rel_tol
+                self.abs_tol = 0.0
+        else:
+            if abs_tol > 0.0:
+                self.rel_tol = 0.0
+                self.abs_tol = abs_tol
+            else:
+                # defaults:
+                self.rel_tol = np.sqrt(np.finfo(float).eps)
+                self.abs_tol = 0.0
+
+        if tol_p > 0.0:
+            self.tol_p = tol_p
+        elif self.rel_tol:
+            self.tol_p = 1.0
+        elif self.abs_tol:
+            self.tol_p = 2.0
 
     @staticmethod
     def _check_positive_definite(
@@ -167,7 +188,7 @@ class CorrPopsOptimizer:
         return {
             "rel_tol": self.rel_tol,
             "abs_tol": self.abs_tol,
-            "abs_p": self.abs_p,
+            "tol_p": self.tol_p,
             "early_stop": self.early_stop,
             "min_iter": self.min_iter,
             "max_iter": self.max_iter,
@@ -180,6 +201,13 @@ class CorrPopsOptimizer:
         }
 
     def set_params(self, **params):
+        if "rel_tol" in params or "abs_tol" in params:
+            self._set_tol(
+                rel_tol=params.pop("rel_tol", -1.0),
+                abs_tol=params.pop("abs_tol", -1.0),
+                tol_p=params.pop("tol_p", -1.0),
+            )
+
         for k, v in params.items():
             if not hasattr(self, k):
                 raise ValueError(f"Invalid parameter {k} for estimator {self}.")
@@ -320,15 +348,12 @@ class CorrPopsOptimizer:
                 status=optimize_results.status,
                 optimize_results=optimize_results,
             )
-            if self.abs_tol:
-                distance = vector.norm_p(
-                    steps[-2]["alpha"], steps[-1]["alpha"], self.abs_p
-                )
-                threshold = self.abs_tol
-            else:
-                distance = np.abs(steps[-2]["value"] - steps[-1]["value"])
-                threshold = self.rel_tol * (np.abs(steps[-1]["value"]) + self.rel_tol)
-
+            distance = vector.norm_p(
+                x=steps[-2]["alpha"],
+                y=steps[-1]["alpha"],
+                p=self.tol_p,
+                agg="mean",
+            )
             self._log(
                 "progress",
                 start_time=start_time,
@@ -336,6 +361,14 @@ class CorrPopsOptimizer:
                 steps=steps,
                 distance=distance,
             )
+
+            if self.abs_tol:
+                threshold = self.abs_tol
+            else:
+                threshold = self.rel_tol * (
+                    vector.norm_p(x=steps[-2]["value"], p=self.tol_p, agg="mean")
+                    + self.rel_tol
+                )
 
             if (
                 distance < threshold

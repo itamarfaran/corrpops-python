@@ -40,5 +40,10 @@ def sum_of_squares(
         sse = np.linalg.multi_dot((diff, inv_sigma, g11)).squeeze()
 
     if reg_lambda > 0.0:
-        sse += reg_lambda * norm_p(alpha, link_function.null_value, reg_p)
+        return sse + reg_lambda * norm_p(
+            x=alpha,
+            y=link_function.null_value,
+            p=reg_p,
+            agg="mean",
+        )
     return sse

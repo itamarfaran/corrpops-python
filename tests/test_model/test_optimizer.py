@@ -87,21 +87,81 @@ def test_corrpops_optimizer_get_params():
         with pytest.raises(KeyError):
             _ = optimizer.get_params()[param]
 
+    optimizer.set_params(rel_tol=-1.0)
+    np.testing.assert_allclose(optimizer.rel_tol, np.sqrt(np.finfo(float).eps))
+    np.testing.assert_allclose(optimizer.abs_tol, 0)
+    np.testing.assert_allclose(optimizer.tol_p, 1.0)
+
+    optimizer = CorrPopsOptimizer(abs_tol=0.01)
+    np.testing.assert_allclose(optimizer.rel_tol, 0.0)
+    np.testing.assert_allclose(optimizer.abs_tol, 0.01)
+    np.testing.assert_allclose(optimizer.tol_p, 2.0)
+
+    optimizer.set_params(abs_tol=-1.0, tol_p=3.0)
+    np.testing.assert_allclose(optimizer.rel_tol, np.sqrt(np.finfo(float).eps))
+    np.testing.assert_allclose(optimizer.abs_tol, 0)
+    np.testing.assert_allclose(optimizer.tol_p, 3.0)
+
     with pytest.raises(ValueError):
-        CorrPopsOptimizer(abs_tol=0.01, rel_tol=0.01)
+        optimizer.set_params(abs_tol=0.01, rel_tol=0.01)
 
 
-@pytest.mark.parametrize("rel_tol, abs_tol", [(1e-06, 0), (0, 1e-06)])
-def test_optimize(parameters, rel_tol, abs_tol):
+@pytest.mark.parametrize(
+    "rel_tol, abs_tol, reg_lambda",
+    [
+        (1e-06, 0.0, 0.0),
+        (0.0, 1e-06, 0.0),
+        (0.0, 0.0, 0.01),
+        (0.0, 0.0, 0.1),
+    ],
+)
+def test_optimize_happy(parameters, rel_tol, abs_tol, reg_lambda):
     link_function = MultiplicativeIdentity()
     theta, alpha, _ = parameters
     g11 = link_function(tv.triangle_to_vector(theta), alpha, alpha.shape[1])
 
-    control = tv.triangle_to_vector(np.stack([theta] * 10))
-    diagnosed = tv.triangle_to_vector(np.stack([g11] * 12))
+    control = tv.triangle_to_vector(np.stack([theta] * 8))
+    diagnosed = tv.triangle_to_vector(np.stack([g11] * 8))
 
-    optimizer = CorrPopsOptimizer(rel_tol=rel_tol, abs_tol=abs_tol)
+    optimizer = CorrPopsOptimizer(
+        rel_tol=rel_tol,
+        abs_tol=abs_tol,
+        reg_lambda=reg_lambda,
+        verbose=False,
+    )
     result = optimizer.optimize(control, diagnosed, link_function)
 
-    np.testing.assert_allclose(alpha.flatten(), result.alpha, atol=0.001)
-    np.testing.assert_allclose(tv.triangle_to_vector(theta), result.theta, atol=0.001)
+    if reg_lambda:
+        where = np.argwhere(alpha.flatten() != 1.0)
+        assert np.all(
+            np.abs(result.alpha[where] - 1) < np.abs(alpha.flatten()[where] - 1)
+        )
+    else:
+        np.testing.assert_allclose(
+            alpha.flatten(),
+            result.alpha,
+            atol=0.001,
+        )
+        np.testing.assert_allclose(
+            tv.triangle_to_vector(theta),
+            result.theta,
+            atol=0.001,
+        )
+
+
+def test_optimize(parameters_and_sample):
+    link_function = MultiplicativeIdentity()
+    _, alpha, control, _ = parameters_and_sample
+
+    control = tv.triangle_to_vector(control)
+    diagnosed = tv.triangle_to_vector(
+        np.stack([link_function(c, alpha, alpha.shape[1]) for c in control])
+    )
+    result = CorrPopsOptimizer(verbose=False).optimize(
+        control, diagnosed, link_function
+    )
+    np.testing.assert_allclose(
+        alpha.flatten(),
+        result.alpha,
+        atol=0.001,
+    )

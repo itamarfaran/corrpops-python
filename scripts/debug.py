@@ -19,7 +19,6 @@ if REAL_DATA:
     control, diagnosed, dropped_subjects, dropped_columns = preprocess(
         data["control"], data["diagnosed"], max_omitted=4
     )
-    minimize_kwargs = {"options": {"gtol": 1e-3}}
 else:
     theta, alpha, _ = build_parameters(
         p=10,
@@ -44,17 +43,15 @@ else:
         random_state=12,
     )
     control, diagnosed = control[0], diagnosed[0]
-    minimize_kwargs = {"options": {}}
 
 
 model = estimator.CorrPopsEstimator(
     link_function=link_functions.MultiplicativeIdentity(
-        transformer=link_functions.Transformer(np.log, np.exp)
+        # transformer=link_functions.Transformer(np.log, np.exp)
     ),
     optimizer=estimator.CorrPopsOptimizer(
         mat_reg_const=0.1,
-        early_stop=not REAL_DATA,
-        minimize_kwargs=minimize_kwargs,
+        # early_stop=not REAL_DATA,
         verbose=True,
     ),
     non_positive="warn",

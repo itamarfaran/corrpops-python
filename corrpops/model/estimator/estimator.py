@@ -97,7 +97,7 @@ class CorrPopsEstimator:
     ):
         if "params" in json_:
             covariance_estimator_kwargs = json_["params"]["covariance_estimator"].copy()
-            if (
+            if (  # pragma: no cover
                 covariance_estimator_kwargs.pop("name")
                 != GeeCovarianceEstimator.__name__
             ):
@@ -127,6 +127,7 @@ class CorrPopsEstimator:
                 )
                 estimator.alpha_ = estimator.optimizer_results_.alpha
                 estimator.theta_ = estimator.optimizer_results_.theta
+                estimator.is_fitted = True
             if "naive_optimizer" in json_["results"]:
                 estimator.naive_optimizer_results_ = CorrPopsOptimizerResults.from_json(
                     json_["results"]["naive_optimizer"]

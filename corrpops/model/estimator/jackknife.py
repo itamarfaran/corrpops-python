@@ -8,7 +8,7 @@ try:
     import ray
 
     _ray_installed: bool = True
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     _ray_installed: bool = False
 
 from corrpops_logger import corrpops_logger
@@ -216,7 +216,7 @@ class CorrPopsJackknifeEstimator:
                 },
             }
         if save_results and self.is_fitted:
-            json_["results"] = {
+            json_["results"] = {  # type: ignore
                 "alpha": self.alpha_.tolist(),
                 "theta": self.theta_.tolist(),
                 "cov": triangle_to_vector(self.cov_, diag=True).tolist(),
@@ -289,7 +289,7 @@ class CorrPopsJackknifeEstimator:
         print("")
         return results
 
-    def _get_jackknife_ray(
+    def _get_jackknife_ray(  # pragma: no cover
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,

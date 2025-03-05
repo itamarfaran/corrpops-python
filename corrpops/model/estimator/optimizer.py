@@ -377,7 +377,7 @@ class CorrPopsOptimizer:
             ):
                 break
 
-            if (
+            if (  # pragma: no cover
                 self.early_stop
                 and i > self.min_iter
                 and steps[-1]["value"] > steps[-2]["value"]

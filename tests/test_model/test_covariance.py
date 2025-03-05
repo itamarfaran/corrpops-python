@@ -1,4 +1,5 @@
 import itertools
+import warnings
 
 import numpy as np
 import pytest
@@ -99,7 +100,13 @@ def test_fisher_covariance(parameters, est_mu, estimated_n):
         steps=[],
     )
 
-    cov_est = FisherSandwichCovarianceEstimator(est_mu=est_mu, estimated_n=estimated_n)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="FisherSandwichCovarianceEstimator is experimental"
+        )
+        cov_est = FisherSandwichCovarianceEstimator(
+            est_mu=est_mu, estimated_n=estimated_n
+        )
     assert isinstance(cov_est.get_params(), dict)
 
     result = cov_est.compute(
@@ -133,7 +140,11 @@ def test_compare_methods(parameters_and_sample, est_mu):
         steps=[],
     )
 
-    fisher = FisherSandwichCovarianceEstimator(est_mu=est_mu)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="FisherSandwichCovarianceEstimator is experimental"
+        )
+        fisher = FisherSandwichCovarianceEstimator(est_mu=est_mu)
     gee = GeeCovarianceEstimator(est_mu=est_mu)
 
     fisher_results, gee_results = (

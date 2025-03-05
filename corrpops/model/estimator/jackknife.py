@@ -83,7 +83,7 @@ def _jackknife_single(
             optimizer_results=results,
             non_positive="ignore",
         )
-    except (AttributeError, ValueError):
+    except (AttributeError, ValueError):  # pragma: no cover
         cov = None
 
     return {
@@ -153,12 +153,15 @@ class CorrPopsJackknifeEstimator:
             alpha_stack[diagnosed_index], rowvar=False
         )
 
-        control_n = len(control_index)
-        control_constant = (control_n - 1) ** 2 / control_n
-        # control_mean = alpha_stack[control_index].mean(0)
-        control_variance = control_constant * np.cov(
-            alpha_stack[control_index], rowvar=False
-        )
+        if len(control_index):
+            control_n = len(control_index)
+            control_constant = (control_n - 1) ** 2 / control_n
+            # control_mean = alpha_stack[control_index].mean(0)
+            control_variance = control_constant * np.cov(
+                alpha_stack[control_index], rowvar=False
+            )
+        else:
+            control_variance = 0.0
 
         return {
             "alpha": alpha_stack.mean(0),
@@ -366,7 +369,7 @@ class CorrPopsJackknifeEstimator:
         )
 
         logger.info("jackknife:fit: starting jackknife procedure")
-        if self.use_ray:
+        if self.use_ray:  # pragma: no cover
             results = self._get_jackknife_ray(
                 control_arr=triangle_to_vector(control_arr),
                 diagnosed_arr=triangle_to_vector(diagnosed_arr),

@@ -1,5 +1,6 @@
+import copy
 import warnings
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
@@ -16,10 +17,15 @@ logger = corrpops_logger()
 
 
 def format_time_delta(time_delta: timedelta) -> str:
+    time_delta_in_seconds = time_delta.seconds
+    hours = time_delta_in_seconds // 3_600
+    minutes = (time_delta_in_seconds - hours * 3_600) // 60
+    seconds = time_delta_in_seconds - hours * 3_600 - minutes * 60
+
     times = {
-        "hours": str(time_delta.seconds // 3_600),
-        "minutes": str(time_delta.seconds // 60),
-        "seconds": str(time_delta.seconds // 60 % 60),
+        "hours": str(hours),
+        "minutes": str(minutes),
+        "seconds": str(seconds),
     }
     for k, v in times.items():
         if len(v) == 1:
@@ -47,34 +53,19 @@ class CorrPopsOptimizerResults:
     link_function: str
     p: int
     dim_alpha: int
-    steps: List[Dict[str, Any]]
+    steps: List[StepDict]
 
-    def to_dict(self):
-        return {
-            "theta": self.theta,
-            "alpha": self.alpha,
-            "inv_cov": self.inv_cov,
-            "link_function": self.link_function,
-            "p": self.p,
-            "dim_alpha": self.dim_alpha,
-            "steps": self.steps,
-        }
-
-    def to_json(self):
-        out = self.to_dict()
-        out["theta"] = out["theta"].tolist()
-        out["alpha"] = out["alpha"].tolist()
-        out["inv_cov"] = (
-            tv.triangle_to_vector(out["inv_cov"], diag=True).tolist()
-            if out["inv_cov"] is not None
-            else []
+    def to_json(self) -> Dict[str, Any]:
+        json_ = asdict(self)
+        json_.update(
+            theta=json_["theta"].tolist(),
+            alpha=json_["alpha"].tolist(),
+            inv_cov=tv.triangle_to_vector(json_["inv_cov"], diag=True).tolist()
+            if json_["inv_cov"] is not None
+            else [],
         )
-        out.pop("steps")
-        return out
-
-    @classmethod
-    def from_dict(cls, dict_):
-        return cls(**dict_)
+        json_.pop("steps")
+        return json_
 
     @classmethod
     def from_json(cls, json_):
@@ -123,17 +114,18 @@ class CorrPopsOptimizer:
         self.mat_reg_const = mat_reg_const
         self.mat_reg_method = mat_reg_method
         self.mat_reg_only_if_singular = mat_reg_only_if_singular
-        self.minimize_kwargs = minimize_kwargs.copy() if minimize_kwargs else {}
+        self.minimize_kwargs = minimize_kwargs or {}
         self.verbose = verbose
         self.save_optimize_results = save_optimize_results
 
-        self.stopping_rule = "abs_tol" if self.abs_tol else "rel_tol"
         if "options" not in self.minimize_kwargs:
             self.minimize_kwargs["options"] = {}
-        self.adaptive_maxiter = "maxiter" not in self.minimize_kwargs["options"]
+
+        if rel_tol and abs_tol:
+            raise ValueError("exactly one of 'rel_tol', 'abs_tol' should be not none")
 
     @staticmethod
-    def _check_positive_definite(  # pragma: no cover
+    def _check_positive_definite(
         theta: np.ndarray,
         alpha: np.ndarray,
         link_function: BaseLinkFunction,
@@ -143,7 +135,7 @@ class CorrPopsOptimizer:
             matrix.is_positive_definite(tv.vector_to_triangle(theta)),
             matrix.is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
         )
-        if not all(is_positive_definite_):
+        if not all(is_positive_definite_):  # pragma: no cover
             warnings.warn("initial parameters dont yield positive-definite matrices")
 
     def _log(self, msg_type: Literal["start", "progress", "end"], **kwargs):
@@ -255,8 +247,6 @@ class CorrPopsOptimizer:
         else:
             theta = theta0
 
-        self._check_positive_definite(theta, alpha, link_function, dim_alpha)
-
         if weights is not None:
             weights = matrix.regularize_matrix(
                 weights,
@@ -267,6 +257,14 @@ class CorrPopsOptimizer:
             inv_cov = linalg.inv(weights)
         else:
             inv_cov = None
+
+        minimize_kwargs = copy.deepcopy(self.minimize_kwargs)
+        adaptive_maxiter = (
+            minimize_kwargs.get("method", "") != "TNC"
+            and "maxiter" not in minimize_kwargs["options"]
+        )
+
+        self._check_positive_definite(theta, alpha, link_function, dim_alpha)
 
         steps: List[StepDict] = []
         self.update_steps(
@@ -282,16 +280,12 @@ class CorrPopsOptimizer:
         )
         start_time = self._log("start")
 
-        i = -1
+        i = 0
         for i in range(self.max_iter):
             last_start_time = datetime.now()
-            if (
-                self.minimize_kwargs.get("method", "") != "TNC"
-                and self.adaptive_maxiter
-            ):
-                self.minimize_kwargs["options"]["maxiter"] = int(
-                    np.clip(i * 100, 500, 2_000)
-                )
+
+            if adaptive_maxiter:
+                minimize_kwargs["options"]["maxiter"] = np.clip(i * 100, 500, 2_000)
 
             theta = theta_of_alpha(
                 alpha=alpha,
@@ -312,7 +306,7 @@ class CorrPopsOptimizer:
                     reg_p=self.reg_p,
                 ),
                 alpha.flatten(),
-                **self.minimize_kwargs,
+                **minimize_kwargs,
             )
             alpha = optimize_results["x"]
             self.update_steps(
@@ -326,8 +320,10 @@ class CorrPopsOptimizer:
                 status=optimize_results.status,
                 optimize_results=optimize_results,
             )
-            if self.stopping_rule == "abs_tol":
-                distance = vector.norm_p(steps[-2]["alpha"], steps[-1]["alpha"], self.abs_p)
+            if self.abs_tol:
+                distance = vector.norm_p(
+                    steps[-2]["alpha"], steps[-1]["alpha"], self.abs_p
+                )
                 threshold = self.abs_tol
             else:
                 distance = np.abs(steps[-2]["value"] - steps[-1]["value"])
@@ -340,12 +336,14 @@ class CorrPopsOptimizer:
                 steps=steps,
                 distance=distance,
             )
+
             if (
                 distance < threshold
                 and i > self.min_iter
                 and all(s["status"] == 0 for s in steps[-self.min_iter:])
             ):
                 break
+
             if (
                 self.early_stop
                 and i > self.min_iter
@@ -356,7 +354,9 @@ class CorrPopsOptimizer:
                 steps.pop(-1)
                 theta = steps[-1]["theta"]
                 alpha = steps[-1]["alpha"]
-                warnings.warn("early stopping used; last iteration didn't minimize target")
+                warnings.warn(
+                    "early stopping used; last iteration didn't minimize target"
+                )
                 break
 
         if i + 1 >= self.max_iter:  # pragma: no cover

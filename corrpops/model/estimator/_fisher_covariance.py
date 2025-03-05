@@ -73,7 +73,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
         optimizer_results: CorrPopsOptimizerResults,
     ) -> np.ndarray:
         def f(a):
-            return sum_of_squares(
+            return a.size * sum_of_squares(
                 alpha=a,
                 theta=optimizer_results.theta,
                 diagnosed_arr=diagnosed_arr,
@@ -97,16 +97,11 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
     ) -> np.ndarray:
-        if self.est_mu:
-            expected_value = triangle_to_vector(
-                link_function(
-                    t=optimizer_results.theta,
-                    a=optimizer_results.alpha,
-                    d=optimizer_results.dim_alpha,
-                )
-            )
-        else:
-            expected_value = np.mean(control_arr, axis=-1)
+        expected_value = (
+            optimizer_results.theta
+            if self.est_mu
+            else np.mean(control_arr, axis=tuple(range(control_arr.ndim - 1)))
+        )
 
         cov, _ = average_covariance_of_correlation(
             vector_to_triangle(control_arr),

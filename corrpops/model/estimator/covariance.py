@@ -27,7 +27,7 @@ class CovarianceEstimator(ABC):
         return self
 
     @abstractmethod
-    def compute(
+    def compute(  # pragma: no cover
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
@@ -112,7 +112,9 @@ class GeeCovarianceEstimator(CovarianceEstimator):
             return theta
 
         expected_value = (
-            optimizer_results.theta if self.est_mu else np.mean(control_arr, axis=-1)
+            optimizer_results.theta
+            if self.est_mu
+            else np.mean(control_arr, axis=tuple(range(control_arr.ndim - 1)))
         )
 
         return self.create_properties(
@@ -156,7 +158,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
                 )
             )
             if self.est_mu
-            else np.mean(diagnosed_arr, axis=-1)
+            else np.mean(diagnosed_arr, axis=tuple(range(diagnosed_arr.ndim - 1)))
         )
 
         return self.create_properties(

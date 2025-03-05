@@ -33,11 +33,7 @@ def generalized_wishart_rvs(
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
 ) -> np.ndarray:
-    if (
-        not random_effect
-        and df > scale.shape[-1]
-        and is_positive_definite(scale)
-    ):
+    if not random_effect and df > scale.shape[-1] and is_positive_definite(scale):
         return stats.wishart.rvs(
             df=df,
             scale=scale,

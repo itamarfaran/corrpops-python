@@ -9,6 +9,8 @@ from corrpops.model.link_functions import MultiplicativeIdentity
 from corrpops.simulation import wishart, sample
 from tests.tests_utils import from_eigh, v_w
 
+SIZES = [1, 10, (1,), (10, 20)]
+
 
 def test_generate_covariance_with_random_effect(parameters):
     theta, _, _ = parameters
@@ -29,7 +31,7 @@ def test_generate_covariance_with_random_effect(parameters):
 
 @pytest.mark.parametrize(
     "size",
-    [1, (1,), 10, (10, 20,)],
+    SIZES,
 )
 def test_generalized_wishart_rvs(parameters, size):
     size_ = size if isinstance(size, tuple) else (size,)
@@ -111,7 +113,7 @@ def test_generalized_wishart_rvs(parameters, size):
 
 @pytest.mark.parametrize(
     "size",
-    [1, (1,), 10, (10, 20,)],
+    SIZES,
 )
 def test_arma_wishart_rvs_same(parameters, size):
     _, _, sigma = parameters
@@ -181,7 +183,7 @@ def test_arma_wishart_rvs_same(parameters, size):
         [0.0, 0.5, (0.5, 0.2)],
         [0.0, 0.5, (0.4, 0.1)],
         [0.0, 0.1, 1.0],
-        [1, (1,), 10, (10, 20,)],
+        SIZES,
     ),
 )
 def test_arma_wishart_rvs(parameters, df, ar, ma, random_effect, size):

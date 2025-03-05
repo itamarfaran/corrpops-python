@@ -73,7 +73,9 @@ def test_covariance_of_correlation_empirical(p, fisher, use_numba):
         row, col = np.diag_indices(p)
         empirical[..., row, col] = scale[..., row, col] = 0
         empirical, scale = np.arctanh(empirical), np.arctanh(scale)
-        expected_covariance = covariance_of_fisher_correlation(scale, use_numba=use_numba)
+        expected_covariance = covariance_of_fisher_correlation(
+            scale, use_numba=use_numba
+        )
     else:
         expected_covariance = covariance_of_correlation(scale, use_numba=use_numba)
 

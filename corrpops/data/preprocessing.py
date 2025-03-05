@@ -127,12 +127,18 @@ def preprocess(
     dropped_subjects = np.argwhere(np.isnan(arr).any(axis=(1, 2))).flatten()
 
     control_indices = np.arange(0, control.shape[0])
-    dropped_control_indices = dropped_subjects[np.isin(dropped_subjects, control_indices)]
-    kept_control_indices = control_indices[~np.isin(control_indices, dropped_subjects)]
+    indices = np.isin(dropped_subjects, control_indices)
+    dropped_control_indices = dropped_subjects[indices]
+
+    indices = ~np.isin(control_indices, dropped_subjects)
+    kept_control_indices = control_indices[indices]
 
     diagnosed_indices = control.shape[0] + np.arange(0, diagnosed.shape[0])
-    dropped_diagnosed_indices = dropped_subjects[np.isin(dropped_subjects, diagnosed_indices)] - control.shape[0]
-    kept_diagnosed_indices = diagnosed_indices[~np.isin(diagnosed_indices, dropped_subjects)]
+    indices = np.isin(dropped_subjects, diagnosed_indices)
+    dropped_diagnosed_indices = dropped_subjects[indices] - control.shape[0]
+
+    indices = ~np.isin(diagnosed_indices, dropped_subjects)
+    kept_diagnosed_indices = diagnosed_indices[indices]
 
     if len(dropped_control_indices):
         logger.warning(

@@ -373,7 +373,7 @@ class CorrPopsOptimizer:
             if (
                 distance < threshold
                 and i > self.min_iter
-                and all(s["status"] == 0 for s in steps[-self.min_iter:])
+                and all(s["status"] == 0 for s in steps[-self.min_iter :])
             ):
                 break
 

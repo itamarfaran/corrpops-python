@@ -152,19 +152,23 @@ def test_mahalanobis(with_eye):
 
     np.testing.assert_allclose(
         vector.mahalanobis(x, m=eye),
-        vector.norm_p(x),
+        vector.norm_p(x, agg="sum"),
     )
     np.testing.assert_allclose(
-        vector.mahalanobis(x, m=eye, sqrt=False),
-        vector.norm_p(x) ** 2,
+        vector.mahalanobis(x, m=eye, agg="mean"),
+        vector.norm_p(x, agg="mean"),
+    )
+    np.testing.assert_allclose(
+        vector.mahalanobis(x, m=eye, reduce=False),
+        vector.norm_p(x, agg="sum") ** 2,
     )
     np.testing.assert_allclose(
         vector.mahalanobis(x, y, m=eye),
-        vector.norm_p(x, y),
+        vector.norm_p(x, y, agg="sum"),
     )
     np.testing.assert_allclose(
         vector.mahalanobis(x, y, m=eye, inverse=False),
-        vector.norm_p(x, y),
+        vector.norm_p(x, y, agg="sum"),
     )
     assert vector.mahalanobis(
         np.stack([x] * 2),
@@ -204,8 +208,8 @@ def test_mahalanobis(with_eye):
 )
 def test_norm_p(d, p):
     x = np.ones(d)
-    np.testing.assert_allclose(vector.norm_p(x, p=p), d ** (1 / p))
-    np.testing.assert_allclose(vector.norm_p(x, p=p, reduce=False), d)
+    np.testing.assert_allclose(vector.norm_p(x, p=p, agg="sum"), d ** (1 / p))
+    np.testing.assert_allclose(vector.norm_p(x, p=p, agg="sum", reduce=False), d)
     np.testing.assert_allclose(vector.norm_p(x, p=p, agg="mean"), 1)
     np.testing.assert_allclose(vector.norm_p(x, x, p=p, agg="mean"), 0)
 

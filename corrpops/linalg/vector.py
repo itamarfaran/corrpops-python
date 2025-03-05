@@ -11,7 +11,8 @@ def mahalanobis(
     y: Optional[npt.ArrayLike] = None,
     m: Optional[npt.ArrayLike] = None,
     inverse: bool = True,
-    sqrt: bool = True,
+    agg: Literal["sum", "mean"] = "sum",
+    reduce: bool = True,
     check_psd: bool = False,
 ) -> Union[np.ndarray, float]:
     x = np.atleast_2d(x)
@@ -31,7 +32,13 @@ def mahalanobis(
         out = np.squeeze(
             np.diagonal(x @ m @ np.swapaxes(x, -1, -2), axis1=-2, axis2=-1)
         )
-    return np.sqrt(out) if sqrt else out
+    if agg == "mean":
+        out = out / x.size
+    elif agg != "sum":
+        raise ValueError(  # pragma: no cover
+            f"expected 'agg' to be either 'sum' or 'mean', got {agg} instead"
+        )
+    return np.sqrt(out) if reduce else out
 
 
 def norm_p(

@@ -81,8 +81,8 @@ def test_sum_of_squares(parameters_and_sample, with_inv_cov):
             y=triangle_to_vector(link_function(t=theta, a=a_, d=alpha.shape[-1])),
             m=inv_cov,
             inverse=False,
-            sqrt=False,
-        ).sum(),
+            reduce=False,
+        ).mean(),
     )
     # derivatives shouldn't care about constants
     np.testing.assert_allclose(x1 / x2, 1, atol=1e-05)
@@ -108,8 +108,8 @@ def test_sum_of_squares(parameters_and_sample, with_inv_cov):
                 y=triangle_to_vector(link_function(t=theta, a=a, d=alpha.shape[-1])),
                 m=inv_cov,
                 inverse=False,
-                sqrt=False,
-            ).sum()
+                reduce=False,
+            ).mean()
         )
     for d in differences:
         # difference should be constant

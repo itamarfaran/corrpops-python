@@ -7,7 +7,7 @@ from corrpops.model.link_functions import MultiplicativeIdentity
 from corrpops.simulation.sample import build_parameters, create_samples_from_parameters
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def parameters() -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     return build_parameters(
         p=5,
@@ -17,7 +17,7 @@ def parameters() -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def parameters_and_sample() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     theta, alpha, _ = build_parameters(
         p=5,

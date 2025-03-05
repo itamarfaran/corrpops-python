@@ -8,7 +8,7 @@ from linalg.matrix import is_positive_definite
 from statistics.arma import is_invertible_arma
 
 
-def generate_covariance_with_random_effect(
+def generate_scales_with_random_effect(
     scale: np.ndarray,
     random_effect: float = 0.0,
     size: Union[int, Tuple[int, ...]] = 1,
@@ -18,46 +18,12 @@ def generate_covariance_with_random_effect(
         raise ValueError(
             f"expected random_effect to be non-negative, got {random_effect}"
         )
-
     if random_effect:
         p = scale.shape[-1] * (1 + 1 / random_effect)
         out = stats.wishart.rvs(df=p, scale=scale, size=size, random_state=random_state)
         return out / p
 
     return np.repeat(scale[np.newaxis, :, :], size, axis=0).squeeze()
-
-
-def multivariate_normal_rvs(
-    df: Union[int, float],
-    scale: np.ndarray,
-    random_effect: float = 0.0,
-    size: Union[int, Tuple[int, ...]] = 1,
-    random_state: Any = None,
-) -> np.ndarray:
-    if isinstance(size, int):
-        size = (size,)
-
-    if not random_effect:
-        return stats.multivariate_normal.rvs(
-            cov=scale,
-            size=size + (df,),
-            random_state=random_state,
-        )
-
-    x = stats.multivariate_normal.rvs(
-        cov=np.eye(scale.shape[-1]),
-        size=size + (df,),
-        random_state=random_state,
-    )
-    scales = generate_covariance_with_random_effect(
-        scale=scale,
-        random_effect=random_effect,
-        size=size,
-        random_state=random_state,
-    )
-    for index in np.ndindex(scales.shape[:-2]):
-        scales[index] = linalg.cholesky(scales[index], overwrite_a=True)
-    return x @ scales
 
 
 def generalized_wishart_rvs(
@@ -67,7 +33,11 @@ def generalized_wishart_rvs(
     size: Union[int, Tuple[int, ...]] = 1,
     random_state: Any = None,
 ) -> np.ndarray:
-    if df > scale.shape[-1] and is_positive_definite(scale) and not random_effect:
+    if (
+        not random_effect
+        and df > scale.shape[-1]
+        and is_positive_definite(scale)
+    ):
         return stats.wishart.rvs(
             df=df,
             scale=scale,
@@ -75,13 +45,28 @@ def generalized_wishart_rvs(
             random_state=random_state,
         )
 
-    x = multivariate_normal_rvs(
-        df=df,
-        scale=scale,
-        random_effect=random_effect,
-        size=size,
-        random_state=random_state,
-    )
+    if isinstance(size, int):
+        size = (size,)
+
+    if random_effect:
+        x = stats.norm.rvs(
+            size=size + (df, scale.shape[-1]),
+            random_state=random_state,
+        ).squeeze()
+        scales = generate_scales_with_random_effect(
+            scale=scale,
+            random_effect=random_effect,
+            size=size,
+            random_state=random_state,
+        )
+        for index in np.ndindex(x.shape[:-2]):
+            x[index] = x[index] @ linalg.cholesky(scales[index], overwrite_a=True)
+    else:
+        x = stats.multivariate_normal.rvs(
+            cov=scale,
+            size=size + (df,),
+            random_state=random_state,
+        )
     return np.swapaxes(x, -1, -2) @ x
 
 
@@ -134,14 +119,11 @@ def arma_wishart_rvs(
             random_state=random_state,
         )
 
-    eps = multivariate_normal_rvs(
-        df=df,
-        scale=scale,
-        random_effect=random_effect,
-        size=size,
+    eps = stats.norm.rvs(
+        size=size + (df, scale.shape[-1]),
         random_state=random_state,
-    )
-    out = np.zeros(size + (df, scale.shape[-1]), float).squeeze()
+    ).squeeze()
+    out = np.zeros_like(eps)
     for i in range(df):
         out[..., i, :] = eps[..., i, :]
 
@@ -149,5 +131,17 @@ def arma_wishart_rvs(
             if lag < i:
                 out[..., i, :] += ma[lag] * eps[..., i - lag - 1, :]
                 out[..., i, :] += ar[lag] * out[..., i - lag - 1, :]
+
+    if random_effect:
+        scales = generate_scales_with_random_effect(
+            scale=scale,
+            random_effect=random_effect,
+            size=size,
+            random_state=random_state,
+        )
+        for index in np.ndindex(out.shape[:-2]):
+            out[index] = out[index] @ linalg.cholesky(scales[index], overwrite_a=True)
+    else:
+        out = out @ linalg.cholesky(scale)
 
     return np.swapaxes(out, -1, -2) @ out

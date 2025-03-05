@@ -13,7 +13,7 @@ from tests.tests_utils import from_eigh, v_w
 def test_generate_covariance_with_random_effect(parameters):
     theta, _, _ = parameters
     theta_new = {
-        random_effect: wishart.generate_covariance_with_random_effect(
+        random_effect: wishart.generate_scales_with_random_effect(
             theta, random_effect=random_effect
         )
         for random_effect in (0.0, 1e-05, 1e-4, 1e-01)
@@ -24,55 +24,15 @@ def test_generate_covariance_with_random_effect(parameters):
     assert np.max(np.abs(theta - theta_new[1e-01])) > 0.1
 
     with pytest.raises(ValueError):
-        wishart.generate_covariance_with_random_effect(theta, random_effect=-1.0)
-
-
-@pytest.mark.parametrize(
-    "df, size",
-    itertools.product(
-        [10, 20],
-        [1, (1,), 12, 40, (23, 44,), (13,)]
-    ),
-)
-def test_multivariate_normal_rvs(parameters, df, size):
-    size_ = size if isinstance(size, tuple) else (size,)
-    _, _, sigma = parameters
-
-    np.testing.assert_array_equal(
-        wishart.multivariate_normal_rvs(
-            df=df,
-            scale=sigma,
-            random_effect=0.0,
-            size=size,
-            random_state=142,
-        ),
-        stats.multivariate_normal.rvs(
-            cov=sigma,
-            size=size_ + (df,),
-            random_state=142,
-        ),
-    )
-
-    if size_ == (1,):
-        expected_size = (df, sigma.shape[0])
-    else:
-        expected_size = size_ + (df, sigma.shape[0])
-
-    result = wishart.multivariate_normal_rvs(
-        df=df,
-        scale=sigma,
-        random_effect=stats.uniform.rvs(scale=100),
-        size=size,
-        random_state=142,
-    )
-    assert result.shape == expected_size
+        wishart.generate_scales_with_random_effect(theta, random_effect=-1.0)
 
 
 @pytest.mark.parametrize(
     "size",
-    [1, (1,), 12, 40, (23, 44,), (13,)],
+    [1, (1,), 10, (10, 20,)],
 )
 def test_generalized_wishart_rvs(parameters, size):
+    size_ = size if isinstance(size, tuple) else (size,)
     _, _, sigma = parameters
     p = sigma.shape[-1]
 
@@ -92,6 +52,11 @@ def test_generalized_wishart_rvs(parameters, size):
         ),
     )
 
+    if size_ == (1,):
+        expected_size = (p, p)
+    else:
+        expected_size = size_ + (p, p)
+
     positive_definite = wishart.generalized_wishart_rvs(
         df=int(p * 2),
         scale=sigma,
@@ -100,6 +65,7 @@ def test_generalized_wishart_rvs(parameters, size):
         random_state=142,
     )
     assert matrix.is_positive_definite(positive_definite).all()
+    assert positive_definite.shape == expected_size
 
     not_positive_definite = wishart.generalized_wishart_rvs(
         df=int(p / 2),
@@ -109,6 +75,7 @@ def test_generalized_wishart_rvs(parameters, size):
         random_state=142,
     )
     assert not matrix.is_positive_definite(not_positive_definite).all()
+    assert not_positive_definite.shape == expected_size
 
     v, w = v_w(p, random_state=7_689)
     positive_semidefinite = wishart.generalized_wishart_rvs(
@@ -119,6 +86,7 @@ def test_generalized_wishart_rvs(parameters, size):
         random_state=142,
     )
     assert not matrix.is_positive_definite(positive_semidefinite).all()
+    assert positive_semidefinite.shape == expected_size
 
     with pytest.raises(ValueError):  # not positive_semidefinite
         scale = from_eigh(v, w - 1)
@@ -143,7 +111,7 @@ def test_generalized_wishart_rvs(parameters, size):
 
 @pytest.mark.parametrize(
     "size",
-    [1, (1,), 12, 40, (23, 44,), (13,)],
+    [1, (1,), 10, (10, 20,)],
 )
 def test_arma_wishart_rvs_same(parameters, size):
     _, _, sigma = parameters
@@ -213,7 +181,7 @@ def test_arma_wishart_rvs_same(parameters, size):
         [0.0, 0.5, (0.5, 0.2)],
         [0.0, 0.5, (0.4, 0.1)],
         [0.0, 0.1, 1.0],
-        [1, (1,), 12, (23, 44,)],
+        [1, (1,), 10, (10, 20,)],
     ),
 )
 def test_arma_wishart_rvs(parameters, df, ar, ma, random_effect, size):

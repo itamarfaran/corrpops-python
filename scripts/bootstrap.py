@@ -2,7 +2,6 @@ import gzip
 import json
 import os
 import warnings
-import zipfile
 from collections import namedtuple
 from typing import List
 
@@ -174,7 +173,3 @@ if __name__ == "__main__":
 
     finally:
         ray.shutdown()
-
-    with zipfile.ZipFile(os.path.join(RESULTS_DIR, f"{RESULTS_DIR}.zip"), "w", 0) as zf:
-        for filename in os.listdir(RESULTS_DIR):
-            zf.write(os.path.join(RESULTS_DIR, filename))

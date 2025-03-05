@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 
 from corrpops.linalg import triangle_and_vector as tv
-from corrpops.model.estimator._fisher_covariance import (
+from corrpops.model.estimator.covariance import (
+    GeeCovarianceEstimator,
     FisherSandwichCovarianceEstimator,
 )
-from corrpops.model.estimator.covariance import GeeCovarianceEstimator
 from corrpops.model.estimator.optimizer import (
     CorrPopsOptimizerResults,
 )

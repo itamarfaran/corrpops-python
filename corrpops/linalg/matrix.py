@@ -56,27 +56,21 @@ def regularize_matrix(
 
     if const < 0:
         raise ValueError("const must be greater or equal to 0")
-    if const > 1:
-        if method != "constant":
-            raise ValueError(f"in method '{method}' const must be in [0, 1]")
 
-    if only_if_singular:
-        if np.linalg.matrix_rank(a) == p:
-            return a
-
-    if method == "constant":
-        return a + np.diag(np.full(p, const))
-
-    diag = np.diag(a)
-    if method == "avg_diag":
-        diag = np.full(p, np.mean(diag))
-    elif method != "increase_diag":
+    if only_if_singular and np.linalg.matrix_rank(a) == p:
+        diag_value = np.zeros(p)
+    elif method == "constant":
+        diag_value = np.ones(p)
+    elif method == "increase_diag":
+        diag_value = np.diag(a)
+    elif method == "avg_diag":
+        diag_value = np.full(p, np.diag(a).mean())
+    else:
         raise ValueError(  # pragma: no cover
             f"expected method to be one of 'constant', "
             f"'avg_diag', 'increase_diag, got {method} instead"
         )
-    # todo: why not consistent with `a + const * np.diag(diag)?`
-    return (1 - const) * a + const * np.diag(diag)
+    return a + const * np.diag(diag_value)
 
 
 def cov_to_corr(a: np.ndarray) -> np.ndarray:

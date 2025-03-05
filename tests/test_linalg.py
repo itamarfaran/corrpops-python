@@ -107,10 +107,6 @@ def test_regularize_matrix(p, const, method):
     with pytest.raises(ValueError):
         matrix.regularize_matrix(orig, -1, method)
 
-    if method != "constant":
-        with pytest.raises(ValueError):
-            matrix.regularize_matrix(orig, 2, method)
-
     with pytest.raises(ValueError):
         matrix.regularize_matrix(np.arange(4 * 5 * 5).reshape(4, 5, 5), const, method)
 

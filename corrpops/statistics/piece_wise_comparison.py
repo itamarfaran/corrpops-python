@@ -8,7 +8,7 @@ try:
 
     _statsmodels_installed: bool = True
 except ModuleNotFoundError:  # pragma: no cover
-    _statsmodels_installed: bool = False
+    _statsmodels_installed: bool = False  # type: ignore
 
 from linalg.triangle_and_vector import triangle_to_vector
 

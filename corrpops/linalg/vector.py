@@ -19,7 +19,7 @@ def mahalanobis(
     if y is not None:
         x = x - np.atleast_2d(y)
     if m is None:
-        out = np.sum(x**2, axis=-1)
+        out = np.sum(x**2, axis=-1)  # type: ignore
     else:
         m = np.asarray(m)
         if m.ndim != 2 or m.shape[0] != m.shape[1]:
@@ -33,7 +33,7 @@ def mahalanobis(
             np.diagonal(x @ m @ np.swapaxes(x, -1, -2), axis1=-2, axis2=-1)
         )
     if agg == "mean":
-        out = out / x.size
+        out = out / x.size  # type: ignore
     elif agg != "sum":
         raise ValueError(  # pragma: no cover
             f"expected 'agg' to be either 'sum' or 'mean', got {agg} instead"

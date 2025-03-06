@@ -14,8 +14,8 @@ NaSummary = namedtuple("NaSummary", ["index", "columns", "percent_na"])
 def calculate_percent_na(arr: np.ndarray, threshold: float = 0) -> List[NaSummary]:
     results = []
     for index in np.ndindex(arr.shape[:-2]):
-        percents_na = []
-        columns = []
+        percents_na: List[float] = []
+        columns: List[int] = []
         a = arr[index].copy()
 
         while a.shape[-1]:
@@ -81,7 +81,7 @@ def drop_columns_by_na_threshold(
     elif not 0 <= threshold <= 1:
         raise ValueError(f"expected threshold to be in [0, 1], got {threshold} instead")
 
-    idx_drop = []
+    idx_drop: List[int] = []
     for _ in range(arr.shape[-1]):
         _, thresholds = na_thresholds(arr)
         max_threshold = max(thresholds.values(), default=0.0)
@@ -101,7 +101,7 @@ def preprocess(
     control: np.ndarray,
     diagnosed: np.ndarray,
     threshold: Optional[float] = None,
-    max_omitted: Union[float, int] = None,
+    max_omitted: Union[float, int, None] = None,
     subset: Optional[Collection[int]] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     arr = np.concatenate((control, diagnosed))

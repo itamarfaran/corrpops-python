@@ -19,7 +19,7 @@ def build_parameters(
     theta_loc: float = 0.0,
     theta_scale: float = 1.0,
     enforce_min_alpha: bool = False,
-    random_state=None,
+    random_state: Any = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     rng = np.random.default_rng(random_state)
 

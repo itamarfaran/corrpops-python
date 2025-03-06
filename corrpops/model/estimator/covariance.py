@@ -15,13 +15,13 @@ from statistics.efron_rms import efron_effective_sample_size, efron_rms_from_vec
 
 
 class CovarianceEstimator(ABC):
-    def get_params(self, **params) -> Dict[str, Any]:
-        return {
-            "name": type(self).__name__,
-            **params,
-        }
+    def _get_params(self, **params: Any) -> Dict[str, Any]:
+        return {"name": type(self).__name__, **params}
 
-    def set_params(self, **params):
+    def get_params(self) -> Dict[str, Any]:
+        return self._get_params()
+
+    def set_params(self, **params: Any) -> "CovarianceEstimator":
         for k, v in params.items():
             if not hasattr(self, k):
                 raise ValueError(f"Invalid parameter {k} for estimator {self}.")
@@ -59,7 +59,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         self.df_method = df_method
 
     def get_params(self) -> Dict[str, Any]:
-        return super().get_params(est_mu=self.est_mu, df_method=self.df_method)
+        return super()._get_params(est_mu=self.est_mu, df_method=self.df_method)
 
     def create_properties(
         self,
@@ -103,7 +103,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
     ) -> _GeeProperties:
-        def jacobian_func(a):
+        def jacobian_func(a: np.ndarray) -> np.ndarray:
             theta = theta_of_alpha(
                 alpha=a,
                 control_arr=control_arr,
@@ -135,7 +135,7 @@ class GeeCovarianceEstimator(CovarianceEstimator):
         optimizer_results: CorrPopsOptimizerResults,
         non_positive: Literal["raise", "warn", "ignore"],
     ) -> _GeeProperties:
-        def jacobian_func(a):
+        def jacobian_func(a: np.ndarray) -> np.ndarray:
             theta = theta_of_alpha(
                 alpha=a,
                 control_arr=control_arr,
@@ -237,7 +237,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
         self.estimated_n = estimated_n
 
     def get_params(self) -> Dict[str, Any]:
-        return super().get_params(est_mu=self.est_mu, estimated_n=self.estimated_n)
+        return super()._get_params(est_mu=self.est_mu, estimated_n=self.estimated_n)
 
     @staticmethod
     def compute_by_gradient(
@@ -248,7 +248,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
         link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
     ) -> np.ndarray:
-        def jacobian_func(a):
+        def jacobian_func(a: np.ndarray) -> np.ndarray:
             theta = theta_of_alpha(
                 alpha=a,
                 control_arr=control_arr,
@@ -284,7 +284,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
         link_function: BaseLinkFunction,
         optimizer_results: CorrPopsOptimizerResults,
     ) -> np.ndarray:
-        def f(a):
+        def f(a: np.ndarray) -> float:
             return a.size * sum_of_squares(
                 alpha=a,
                 theta=optimizer_results.theta,
@@ -294,7 +294,7 @@ class FisherSandwichCovarianceEstimator(CovarianceEstimator):
                 dim_alpha=optimizer_results.dim_alpha,
             )
 
-        def jacobian_func(a):
+        def jacobian_func(a: np.ndarray) -> np.ndarray:
             return optimize.approx_fprime(a, f)
 
         return force_symmetry(

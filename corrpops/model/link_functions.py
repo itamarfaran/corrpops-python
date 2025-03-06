@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 
@@ -17,10 +17,10 @@ class Transformer:
         self.inverse_func = inverse_func
         self.name_ = name or func.__name__
 
-    def transform(self, *args, **kwargs) -> Union[float, np.ndarray]:
+    def transform(self, *args: Any, **kwargs: Any) -> Union[float, np.ndarray]:
         return self.func(*args, **kwargs)
 
-    def inverse_transform(self, *args, **kwargs) -> Union[float, np.ndarray]:
+    def inverse_transform(self, *args: Any, **kwargs: Any) -> Union[float, np.ndarray]:
         return self.inverse_func(*args, **kwargs)
 
 
@@ -32,7 +32,7 @@ class BaseLinkFunction(ABC):
         self.transformer = transformer or Transformer(lambda x: x, lambda x: x)
         self._validate_transformer()
 
-    def _validate_transformer(self):
+    def _validate_transformer(self) -> None:
         transformed = self.transformer.inverse_transform(self.null_value_)
         if not np.allclose(self.null_value_, self.transformer.transform(transformed)):
             raise ValueError(
@@ -50,9 +50,9 @@ class BaseLinkFunction(ABC):
 
     @property
     def null_value(self) -> float:
-        return self.transformer.inverse_transform(self.null_value_)
+        return self.transformer.inverse_transform(self.null_value_)  # type: ignore
 
-    def check_name_equal(self, name: str):
+    def check_name_equal(self, name: str) -> None:
         if name != self.name:
             raise ValueError("link function mismatch")
 

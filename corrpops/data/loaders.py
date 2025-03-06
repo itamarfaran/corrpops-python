@@ -9,7 +9,7 @@ from linalg.triangle_and_vector import vector_to_triangle
 logger = corrpops_logger()
 
 
-def download_data(dst: Path):  # pragma: no cover
+def download_data(dst: Path) -> None:  # pragma: no cover
     import urllib.request
 
     src = (

@@ -68,7 +68,7 @@ class CorrPopsOptimizerResults:
         return json_
 
     @classmethod
-    def from_json(cls, json_):
+    def from_json(cls, json_: Dict[str, Any]) -> "CorrPopsOptimizerResults":
         return cls(
             theta=np.array(json_["theta"]),
             alpha=np.array(json_["alpha"]),
@@ -120,7 +120,7 @@ class CorrPopsOptimizer:
         if "options" not in self.minimize_kwargs:
             self.minimize_kwargs["options"] = {}
 
-    def _set_tol(self, rel_tol: float, abs_tol: float, tol_p: float):
+    def _set_tol(self, rel_tol: float, abs_tol: float, tol_p: float) -> None:
         if rel_tol > 0.0:
             if abs_tol > 0.0:
                 raise ValueError(
@@ -151,7 +151,7 @@ class CorrPopsOptimizer:
         alpha: np.ndarray,
         link_function: BaseLinkFunction,
         dim_alpha: int,
-    ):
+    ) -> None:
         is_positive_definite_ = (
             matrix.is_positive_definite(tv.vector_to_triangle(theta)),
             matrix.is_positive_definite(link_function(t=theta, a=alpha, d=dim_alpha)),
@@ -159,7 +159,11 @@ class CorrPopsOptimizer:
         if not all(is_positive_definite_):  # pragma: no cover
             warnings.warn("initial parameters dont yield positive-definite matrices")
 
-    def _log(self, msg_type: Literal["start", "progress", "end"], **kwargs):
+    def _log(
+        self,
+        msg_type: Literal["start", "progress", "end"],
+        **kwargs: Any,
+    ) -> datetime:
         now = datetime.now()
 
         if msg_type == "start":
@@ -200,7 +204,7 @@ class CorrPopsOptimizer:
             "minimize_kwargs": self.minimize_kwargs,
         }
 
-    def set_params(self, **params):
+    def set_params(self, **params: Any) -> "CorrPopsOptimizer":
         if "rel_tol" in params or "abs_tol" in params:
             self._set_tol(
                 rel_tol=params.pop("rel_tol", -1.0),
@@ -216,7 +220,7 @@ class CorrPopsOptimizer:
 
     def update_steps(
         self,
-        steps: List[Dict[str, Any]],
+        steps: List[StepDict],
         theta: np.ndarray,
         alpha: np.ndarray,
         diagnosed_arr: np.ndarray,
@@ -225,7 +229,7 @@ class CorrPopsOptimizer:
         dim_alpha: int,
         status: int,
         optimize_results: Union[optimize.OptimizeResult, dict],
-    ):
+    ) -> None:
         if not self.save_optimize_results:
             optimize_results = {}
 

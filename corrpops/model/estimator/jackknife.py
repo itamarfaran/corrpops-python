@@ -9,7 +9,7 @@ try:
 
     _ray_installed: bool = True
 except ModuleNotFoundError:  # pragma: no cover
-    _ray_installed: bool = False
+    _ray_installed: bool = False  # type: ignore
 
 from corrpops_logger import corrpops_logger
 from linalg.triangle_and_vector import triangle_to_vector, vector_to_triangle
@@ -76,7 +76,7 @@ def _jackknife_single(
         weights=weights,
     )
     try:
-        cov = covariance_estimator.compute(
+        cov = covariance_estimator.compute(  # type: ignore
             control_arr=control_arr,
             diagnosed_arr=diagnosed_arr,
             link_function=link_function,
@@ -127,8 +127,8 @@ class CorrPopsJackknifeEstimator:
 
     @staticmethod
     def stack_if_not_none(
-        results: List[Dict[str, Optional[np.ndarray]]],
-        key: str,
+        results: List[JackknifeResult],
+        key: Literal["theta", "alpha", "status", "cov"],
         param_shape: Tuple[int, ...],
     ) -> np.ndarray:
         return np.stack(
@@ -161,7 +161,7 @@ class CorrPopsJackknifeEstimator:
                 alpha_stack[control_index], rowvar=False
             )
         else:
-            control_variance = 0.0
+            control_variance = np.zeros_like(diagnosed_variance)
 
         return {
             "alpha": alpha_stack.mean(0),
@@ -172,7 +172,7 @@ class CorrPopsJackknifeEstimator:
         }
 
     @staticmethod
-    def results_from_json(json_: Dict[str, Any]):
+    def results_from_json(json_: Dict[str, Any]) -> Dict[str, Any]:
         results = json_["results"]
         out = {
             "alpha": np.array(results["alpha"]),
@@ -248,7 +248,7 @@ class CorrPopsJackknifeEstimator:
         self,
         control_arr: np.ndarray,
         diagnosed_arr: np.ndarray,
-    ):
+    ) -> None:
         self.diagnosed_index_ = np.arange(diagnosed_arr.shape[0])
         if self.jack_control:
             self.control_index_ = self.diagnosed_index_.size + np.arange(
@@ -342,7 +342,7 @@ class CorrPopsJackknifeEstimator:
         *,
         compute_cov: bool = False,
         ray_options: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> "CorrPopsJackknifeEstimator":
         if self.base_estimator.optimizer_results_ is None:
             logger.info("jackknife:fit: run base_estimator.fit")
             self.base_estimator.fit(
@@ -350,7 +350,7 @@ class CorrPopsJackknifeEstimator:
                 diagnosed_arr=diagnosed_arr,
                 compute_cov=False,
             )
-        steps = self.base_estimator.optimizer_results_.steps
+        steps = self.base_estimator.optimizer_results_.steps  # type: ignore
 
         if len(steps) > self.steps_back:
             alpha0 = steps[-self.steps_back - 1]["alpha"]

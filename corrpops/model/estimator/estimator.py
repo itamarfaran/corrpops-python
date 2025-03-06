@@ -94,7 +94,7 @@ class CorrPopsEstimator:
         json_: Dict[str, Dict[str, Dict[str, Any]]],
         link_function: BaseLinkFunction,
         non_positive: Literal["raise", "warn", "ignore"] = "raise",
-    ):
+    ) -> "CorrPopsEstimator":
         if "params" in json_:
             covariance_estimator_kwargs = json_["params"]["covariance_estimator"].copy()
             if (  # pragma: no cover
@@ -181,7 +181,7 @@ class CorrPopsEstimator:
         diagnosed_arr: np.ndarray,
         *,
         compute_cov: bool = True,
-    ):
+    ) -> "CorrPopsEstimator":
         weight_matrix, _ = average_covariance_of_correlation(
             diagnosed_arr,
             non_positive=self.non_positive,
@@ -225,7 +225,11 @@ class CorrPopsEstimator:
             )
         return self
 
-    def compute_covariance(self, control_arr: np.ndarray, diagnosed_arr: np.ndarray):
+    def compute_covariance(
+        self,
+        control_arr: np.ndarray,
+        diagnosed_arr: np.ndarray,
+    ) -> "CorrPopsEstimator":
         self.cov_ = self.covariance_estimator.compute(
             control_arr=triangle_to_vector(control_arr),
             diagnosed_arr=triangle_to_vector(diagnosed_arr),

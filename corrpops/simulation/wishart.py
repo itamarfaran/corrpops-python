@@ -120,7 +120,7 @@ def arma_wishart_rvs(
         random_state=random_state,
     ).squeeze()
     out = np.zeros_like(eps)
-    for i in range(df):
+    for i in range(df):  # type: ignore
         out[..., i, :] = eps[..., i, :]
 
         for lag in range(max_lag):

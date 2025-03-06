@@ -25,7 +25,7 @@ def force_symmetry(a: np.ndarray) -> np.ndarray:
 
 
 def is_positive_definite(a: np.ndarray) -> np.ndarray:
-    def _check(a_):
+    def _check(a_: np.ndarray) -> bool:
         if np.allclose(a_, a_.T):
             try:
                 np.linalg.cholesky(a_)
